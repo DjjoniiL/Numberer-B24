@@ -6,8 +6,8 @@ Static Bitrix24 Marketplace-приложение для автоматическ
 
 ## Текущая версия
 
-- UI/runtime label: `Numberer B24 v.2.0`
-- Marketplace zip: `dist app B24 zip/Numberer B24 v.2.0.zip`
+- UI/runtime label: `Numberer B24 v.3`
+- Marketplace zip: `dist app B24 zip/Numberer B24 v.3.zip`
 
 ## Основные правила
 
@@ -33,7 +33,7 @@ Static Bitrix24 Marketplace-приложение для автоматическ
 
 - Префикс: ручной.
 - Ручной префикс: `NUM`.
-- Цифровая часть: 3 символа.
+- Цифровая часть: 4 символа.
 - Буквенная часть: 2 символа.
 - Режим: последовательный.
 - Дата начала выборки: дата установки минус 14 дней.

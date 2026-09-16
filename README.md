@@ -2,9 +2,9 @@
 
 Static Bitrix24 Marketplace app for assigning unique numbers to deals.
 
-Current runtime label: `Numberer B24 v.2.0`.
+Current runtime label: `Numberer B24 v.3`.
 
-Current Marketplace archive naming format: `dist app B24 zip/Numberer B24 v.2.0.zip`.
+Current Marketplace archive naming format: `dist app B24 zip/Numberer B24 v.3.zip`.
 
 ## What it does
 
@@ -20,7 +20,7 @@ Current Marketplace archive naming format: `dist app B24 zip/Numberer B24 v.2.0.
 - Supports 3, 4, 5, or 6 numeric digits.
 - Supports 2, 3, 4, or 5 Latin letters in the generated letter prefix.
 - Supports sequential and random modes.
-- Default settings after install: manual prefix `NUM`, 3 digits, 2 letters, sequential mode, successful stage for every funnel, and start date set to 14 days before install.
+- Default settings after install: manual prefix `NUM`, 4 digits, 2 letters, sequential mode, successful stage for every funnel, and start date set to 14 days before install.
 - Saves settings permanently in `app.option`; install and app load preserve existing settings.
 - Renumbers every matching deal after an administrator saves settings, including deals that already have a unique number.
 - The background worker continues processing matching deals with an empty number while Bitrix24 runs the app worker.

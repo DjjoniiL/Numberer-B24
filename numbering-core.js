@@ -15,7 +15,7 @@
     prefixMode: "manual",
     prefixField: "",
     manualPrefix: "NUM",
-    digits: 3,
+    digits: 4,
     letterLength: 2,
     generationMode: "sequential",
     startDate: "",

@@ -68,7 +68,7 @@ test("skips deals created before the configured start date", () => {
 test("keeps requested default prefix and can calculate two week cutoff", () => {
   assert.equal(core.defaultSettings.manualPrefix, "NUM");
   assert.equal(core.defaultSettings.letterLength, 2);
-  assert.equal(core.defaultSettings.digits, 3);
+  assert.equal(core.defaultSettings.digits, 4);
   assert.deepEqual(core.letterOptions, [2, 3, 4, 5]);
   assert.equal(core.dateDaysAgo(14, new Date("2025-09-16T12:00:00")), "2025-09-02");
 });

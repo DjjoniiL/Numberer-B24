@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const appVersion = "Numberer B24 v.2.0";
+  const appVersion = "Numberer B24 v.3";
   const settingsOption = "numbererB24Settings";
   const sequenceOption = "numbererB24SequenceState";
   const renumberJobOption = "numbererB24RenumberJob";
@@ -196,7 +196,7 @@
       ...core.defaultSettings,
       prefixMode: "manual",
       manualPrefix: "NUM",
-      digits: 3,
+      digits: 4,
       letterLength: 2,
       generationMode: "sequential",
       startDate: core.dateDaysAgo(14),

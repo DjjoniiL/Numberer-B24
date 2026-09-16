@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const appVersion = "Numberer B24 v1.0.0";
+  const appVersion = "Numberer B24 v.3";
   const settingsOption = "numbererB24Settings";
   const uniqueFieldName = "UF_CRM_UNIQUE_NUMBER";
   const uniqueFieldShortName = "UNIQUE_NUMBER";
@@ -123,7 +123,7 @@
       ...core.defaultSettings,
       prefixMode: "manual",
       manualPrefix: "NUM",
-      digits: 3,
+      digits: 4,
       letterLength: 2,
       generationMode: "sequential",
       startDate: core.dateDaysAgo(14),

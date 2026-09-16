@@ -4,8 +4,8 @@
 
 - Path: `C:\AI Project B24\Numberer B24`
 - App: `Numberer B24`
-- Runtime version label: `Numberer B24 v.2.0`
-- Current versioned zip: `dist app B24 zip/Numberer B24 v.2.0.zip`
+- Runtime version label: `Numberer B24 v.3`
+- Current versioned zip: `dist app B24 zip/Numberer B24 v.3.zip`
 
 ## Current State
 
