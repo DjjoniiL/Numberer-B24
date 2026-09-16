@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Нумератор сделок</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="//api.bitrix24.com/api/v1/"></script>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <h1>Нумератор сделок</h1>
+      </div>
+      <button id="refresh" class="icon-button" type="button" title="Обновить справочники">↻</button>
+    </header>
+
+    <form id="settingsForm" class="panel">
+      <div class="panel-heading">
+        <h2>Настройки номера</h2>
+        <span id="settingsStatus" class="status">Загрузка...</span>
+      </div>
+      <p id="adminNotice" class="admin-notice" hidden>Для изменения настроек обратитесь к администратору вашего портала.</p>
+
+      <div class="settings-grid">
+        <div class="settings-main">
+          <label class="field">
+            <span>Источник префикса</span>
+            <select name="prefixMode" id="prefixMode">
+              <option value="manual">Задать вручную</option>
+              <option value="field">Взять из строкового поля сделки</option>
+            </select>
+          </label>
+
+          <label class="field" id="manualPrefixWrap">
+            <span>Ручной префикс</span>
+            <input name="manualPrefix" id="manualPrefix" maxlength="32" placeholder="Например: LTE">
+          </label>
+
+          <label class="field" id="prefixFieldWrap" hidden>
+            <span>Поле сделки для префикса</span>
+            <select name="prefixField" id="prefixField"></select>
+          </label>
+
+          <div class="number-options">
+            <fieldset class="choice-group">
+              <legend>Цифровая часть <button class="help-button" type="button" data-help="digits" title="Справка">?</button></legend>
+              <div class="segmented" id="digitsChoices"></div>
+            </fieldset>
+
+            <fieldset class="choice-group">
+              <legend>Буквенный префикс значения <button class="help-button" type="button" data-help="letters" title="Справка">?</button></legend>
+              <div class="segmented" id="letterChoices"></div>
+            </fieldset>
+
+            <fieldset class="choice-group mode-group">
+              <legend>Режим создания номеров</legend>
+              <div class="segmented">
+                <label><input type="radio" name="generationMode" value="sequential" checked><span>Последовательный</span></label>
+                <label><input type="radio" name="generationMode" value="random"><span>Рандомный</span></label>
+              </div>
+            </fieldset>
+          </div>
+        </div>
+
+        <section class="stage-panel">
+          <label class="field">
+            <span>Дата начала выборки</span>
+            <input type="date" name="startDate" id="startDate">
+          </label>
+
+          <div class="preview" aria-live="polite">
+            <span>Пример номера</span>
+            <strong id="numberPreview">LTE_AA001</strong>
+          </div>
+
+          <h3>Стадии запуска по воронкам</h3>
+          <div id="stageMatrix" class="stage-matrix"></div>
+          <div class="actions">
+            <button type="submit" class="primary">Сохранить</button>
+          </div>
+        </section>
+      </div>
+
+      <pre id="log" class="log" hidden></pre>
+    </form>
+    <div id="appVersion" class="app-version">Numberer B24 v.2.0</div>
+  </main>
+
+  <dialog id="helpModal">
+    <div class="modal-heading">
+      <h2>Комбинации номера</h2>
+      <button id="closeHelp" class="icon-button" type="button" title="Закрыть">×</button>
+    </div>
+    <p id="helpText"></p>
+  </dialog>
+
+  <script src="numbering-core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
