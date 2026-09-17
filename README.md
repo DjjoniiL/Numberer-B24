@@ -1,35 +1,46 @@
 # Numberer B24
 
-Static Bitrix24 Marketplace app for assigning unique numbers to deals.
+Статическое Bitrix24 Marketplace-приложение для автоматической нумерации сделок.
 
-Current runtime label: `Numberer B24 v.3.5`.
+Текущая версия приложения: `Numberer B24 v.3.5`.
 
-Current Marketplace archive naming format: `dist app B24 zip/Numberer B24 v.3.5.zip`.
+Текущий тестовый Marketplace-архив: `dist app B24 zip/Numberer B24 v.3.5.zip`.
 
-## What it does
+## Что Делает Приложение
 
-- Loads all deal funnels through `crm.category.list`.
-- Lets the user pick the deal stage where a number must be created for each funnel.
-- Allows settings changes only for Bitrix24 administrators.
-- Creates the deal string field `Уникальный номер` (`UF_CRM_UNIQUE_NUMBER`) automatically on install, app load, and save.
-- Puts that field into the main deal-card section.
-- Builds numbers in the format `PREFIX_AAA0001`.
-- Supports prefix from an existing string deal field or a manual prefix.
-- Skips number creation and writes a deal timeline comment when the selected prefix field is empty.
-- Refreshes the string-field list from CRM when the refresh button is pressed.
-- Supports `Дата начала выборки`: only deals with `DATE_CREATE` on or after this date receive numbers.
-- Supports 3, 4, 5, or 6 numeric digits.
-- Supports 2, 3, 4, or 5 Latin letters in the generated letter prefix.
-- Supports sequential and random modes.
-- Default settings after install: manual prefix `NUM`, 4 digits, 2 letters, sequential mode, successful stage for every funnel, and start date set to 14 days before install.
-- Saves settings permanently in `app.option`; install and app load preserve existing settings.
-- Renumbers every matching deal after an administrator saves settings, including deals that already have a unique number.
-- The background worker continues processing matching deals with an empty number while Bitrix24 runs the app worker.
-- Includes help modals with capacity examples such as `26^4 = 456 976`.
+- Загружает все воронки сделок через `crm.category.list`.
+- Позволяет администратору выбрать стадию, на которой в каждой воронке должен создаваться номер.
+- Менять настройки могут только администраторы Bitrix24.
+- Автоматически создаёт строковое поле сделки `Уникальный номер` (`UF_CRM_UNIQUE_NUMBER`) при установке, открытии приложения и сохранении настроек.
+- Добавляет поле `Уникальный номер` в основную карточку сделки.
+- Формирует номера в формате `PREFIX_AAA0001`.
+- Поддерживает ручной префикс или префикс из выбранного строкового поля сделки.
+- Если выбранное поле для префикса пустое, номер не создаётся, а в таймлайн сделки добавляется комментарий с ошибкой.
+- Обновляет список строковых полей CRM по кнопке обновления.
+- Учитывает дату начала выборки: номер получают только сделки с `DATE_CREATE` не раньше выбранной даты.
+- Поддерживает 3, 4, 5 или 6 цифр в цифровой части номера.
+- Поддерживает 2, 3, 4 или 5 латинских букв в буквенной части номера.
+- Поддерживает последовательный и случайный режимы генерации.
+- Сохраняет настройки в `app.option`; повторное открытие или обновление приложения не сбрасывает настройки.
+- После сохранения настроек администратором перенумеровывает все подходящие сделки, включая сделки с уже заполненным номером.
+- Фоновый worker продолжает обрабатывать подходящие сделки без номера, пока Bitrix24 запускает worker приложения.
+- Содержит окно помощи с описанием логики работы, настройками по умолчанию и подключением чата Открытой линии.
 
-## Marketplace files
+## Настройки По Умолчанию
 
-Runtime files:
+- Префикс: вручную, значение `NUM`.
+- Формат номера: `NUM_AA0000`, дальше `NUM_AA0001`, `NUM_AA0002` и так далее.
+- Буквенная часть: 2 латинские буквы.
+- Цифровая часть: 4 цифры, диапазон `0000-9999`.
+- Режим: последовательная генерация.
+- Дата начала выборки: минус 14 дней от даты установки.
+- Стадии запуска: успешная стадия в каждой найденной воронке.
+
+При настройках по умолчанию доступно `26 × 26 × 10 000 = 6 760 000` комбинаций на один префикс и одну воронку.
+
+## Файлы Marketplace-Архива
+
+Runtime-файлы внутри zip:
 
 - `install.html`
 - `install.js`
@@ -41,21 +52,21 @@ Runtime files:
 - `worker.js`
 - `worker-error.html`
 
-Do not put `.env`, secrets, repository metadata, tests, docs, or local notes into the Marketplace zip.
+В Marketplace zip нельзя включать `.env`, секреты, метаданные репозитория, тесты, документацию, локальные заметки и старые архивы. Сгенерированные zip-архивы не коммитятся и не пушатся по умолчанию.
 
-## Bitrix24 scopes
+## Права Bitrix24
 
-Use the narrowest scopes:
+Используются минимальные права:
 
 - `crm`
 - `placement`
 - `user_brief`
 
-`user_brief` is enough because the app only checks whether the current user can manage app settings through `BX24.isAdmin()` / `user.admin`. It does not call `user.get`, does not read contacts, and does not need `user_basic`.
+`user_brief` достаточно, потому что приложение проверяет административный доступ через `BX24.isAdmin()` / `user.admin`. Приложение не вызывает `user.get`, не читает контакты пользователей и не требует `user_basic`.
 
-## Bitrix24 REST methods
+## REST-Методы Bitrix24
 
-Minimal app permissions should cover CRM read/write, user fields, app options, and placements:
+Минимальные права приложения должны покрывать CRM, пользовательские поля, настройки приложения, placements и комментарии таймлайна:
 
 - `user.admin`
 - `crm.category.list`
@@ -67,6 +78,7 @@ Minimal app permissions should cover CRM read/write, user fields, app options, a
 - `crm.deal.get`
 - `crm.deal.list`
 - `crm.deal.update`
+- `crm.timeline.comment.add`
 - `crm.item.details.configuration.get`
 - `crm.item.details.configuration.set`
 - `crm.deal.details.configuration.get`
@@ -76,7 +88,7 @@ Minimal app permissions should cover CRM read/write, user fields, app options, a
 - `placement.bind`
 - `placement.unbind`
 
-## Local checks
+## Локальные Проверки
 
 ```powershell
 npm test
@@ -84,4 +96,10 @@ npm run lint
 powershell -ExecutionPolicy Bypass -File .\tools\build-marketplace-zip.ps1
 ```
 
-The build script writes a versioned archive into `dist app B24 zip`. If the target archive already exists, the script creates a timestamped file instead of overwriting it.
+Скрипт сборки пишет versioned-архив в `dist app B24 zip`. Если архив с таким именем уже существует, скрипт создаёт файл с timestamp и не перезаписывает старый архив.
+
+## GitHub About
+
+Рекомендуемое описание репозитория:
+
+`Bitrix24 Marketplace-приложение для автоматической нумерации сделок с настройкой префикса, стадий запуска и перенумерацией по правилам администратора.`
