@@ -2,9 +2,9 @@
 
 Static Bitrix24 Marketplace app for assigning unique numbers to deals.
 
-Current runtime label: `Numberer B24 v.3`.
+Current runtime label: `Numberer B24 v.3.5`.
 
-Current Marketplace archive naming format: `dist app B24 zip/Numberer B24 v.3.zip`.
+Current Marketplace archive naming format: `dist app B24 zip/Numberer B24 v.3.5.zip`.
 
 ## What it does
 
@@ -15,6 +15,7 @@ Current Marketplace archive naming format: `dist app B24 zip/Numberer B24 v.3.zi
 - Puts that field into the main deal-card section.
 - Builds numbers in the format `PREFIX_AAA0001`.
 - Supports prefix from an existing string deal field or a manual prefix.
+- Skips number creation and writes a deal timeline comment when the selected prefix field is empty.
 - Refreshes the string-field list from CRM when the refresh button is pressed.
 - Supports `Дата начала выборки`: only deals with `DATE_CREATE` on or after this date receive numbers.
 - Supports 3, 4, 5, or 6 numeric digits.

@@ -36,6 +36,55 @@ select {
   padding: 10px 0;
 }
 
+body.compact-stages-page,
+body:has(.compact-stages) {
+  overflow-y: hidden;
+}
+
+.compact-stages {
+  padding-block: 6px 4px;
+}
+
+.compact-stages .topbar {
+  margin-bottom: 6px;
+}
+
+.compact-stages h1 {
+  font-size: 22px;
+}
+
+.compact-stages h3 {
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
+.compact-stages .panel {
+  padding: 12px 14px;
+}
+
+.compact-stages .field,
+.compact-stages .choice-group {
+  margin-bottom: 8px;
+}
+
+.compact-stages .preview {
+  min-height: 92px;
+  margin-bottom: 10px;
+  padding: 12px;
+}
+
+.compact-stages .preview strong {
+  font-size: 22px;
+}
+
+.compact-stages .actions {
+  margin-top: 12px;
+}
+
+.compact-stages .app-version {
+  margin-top: 6px;
+}
+
 .install-shell {
   min-height: 100vh;
   display: grid;
@@ -48,6 +97,12 @@ select {
   gap: 16px;
   align-items: center;
   margin-bottom: 8px;
+}
+
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 h1,
@@ -364,7 +419,70 @@ dialog::backdrop {
   line-height: 1.5;
 }
 
+.support-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(16, 24, 40, 0.42);
+}
+
+.support-modal {
+  position: fixed;
+  inset: 8vh 3cm auto 2cm;
+  z-index: 1010;
+  width: auto;
+  max-width: none;
+  max-height: calc(100vh - 16vh);
+  margin: 0;
+  overflow: auto;
+}
+
+.support-content {
+  display: grid;
+  gap: 14px;
+  line-height: 1.55;
+}
+
+.support-content ul {
+  margin: 0;
+  padding-left: 22px;
+}
+
+.support-content li + li {
+  margin-top: 6px;
+}
+
+.support-content code {
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: #eef3f8;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.95em;
+}
+
+.support-contact {
+  padding-top: 4px;
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
+.b24-widget-button-wrapper,
+.b24-widget-button-position-bottom-right,
+.b24-widget-button-popup,
+.b24-widget-button-popup-triangle,
+.b24-widget-button-shadow,
+[class*="b24-widget-button"],
+[class*="b24-crm-button"],
+[class*="bx-livechat"] {
+  z-index: 2147483647 !important;
+}
+
 @media (max-width: 820px) {
+  .support-modal {
+    inset: 16px;
+    max-height: calc(100vh - 32px);
+  }
+
   .settings-grid,
   .number-options {
     grid-template-columns: 1fr;

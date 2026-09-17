@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const appVersion = "Numberer B24 v.3";
+  const appVersion = "Numberer B24 v.3.5";
   const settingsOption = "numbererB24Settings";
   const uniqueFieldName = "UF_CRM_UNIQUE_NUMBER";
   const uniqueFieldShortName = "UNIQUE_NUMBER";

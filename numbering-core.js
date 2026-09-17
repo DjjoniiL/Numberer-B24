@@ -147,6 +147,18 @@
     };
   }
 
+  function prefixFieldProblem(settings, deal) {
+    const normalized = normalizeSettings(settings);
+    if (normalized.prefixMode !== "field") return null;
+    if (!normalized.prefixField) return { reason: "prefix-field-not-selected" };
+    const rawValue = deal?.[normalized.prefixField];
+    if (cleanPrefix(rawValue)) return null;
+    return {
+      reason: "prefix-field-empty",
+      field: normalized.prefixField,
+    };
+  }
+
   function helpText(digits, letterLength) {
     const letterCount = pow26(letterLength);
     const digitCount = numberCapacity(digits);
@@ -201,6 +213,7 @@
     normalizeDateOnly,
     dateFilterValue,
     cleanPrefix,
+    prefixFieldProblem,
     pow26,
     numberCapacity,
     formatNumber,

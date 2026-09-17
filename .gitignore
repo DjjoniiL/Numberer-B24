@@ -3,3 +3,5 @@ dist/
 .env
 .DS_Store
 Thumbs.db
+dist app B24 zip/*.zip
+dist app B24 zip/marketplace-runtime/

@@ -1,10 +1,11 @@
 (function () {
   "use strict";
 
-  const appVersion = "Numberer B24 worker v.3";
+  const appVersion = "Numberer B24 worker v.3.5";
   const settingsOption = "numbererB24Settings";
   const sequenceOption = "numbererB24SequenceState";
   const renumberJobOption = "numbererB24RenumberJob";
+  const prefixMissingCommentsOption = "numbererB24PrefixMissingComments";
   const uniqueFieldName = "UF_CRM_UNIQUE_NUMBER";
   const core = window.NumbererCore;
   const pollMs = 15000;
@@ -62,6 +63,36 @@
     await callMethod("app.option.set", { options: { [sequenceOption]: JSON.stringify(sequenceState || {}) } });
   }
 
+  async function loadPrefixMissingComments() {
+    const data = await callMethod("app.option.get", { option: prefixMissingCommentsOption }).catch(() => null);
+    return optionJson(data, {});
+  }
+
+  async function savePrefixMissingComments(stateMap) {
+    const entries = Object.entries(stateMap || {}).slice(-200);
+    await callMethod("app.option.set", { options: { [prefixMissingCommentsOption]: JSON.stringify(Object.fromEntries(entries)) } });
+  }
+
+  function prefixMissingCommentKey(dealId, fieldName) {
+    return [Number(dealId), fieldName, settings.settingsRevision || "current"].join("|");
+  }
+
+  async function addPrefixMissingTimelineCommentOnce(dealId, fieldName) {
+    const comments = await loadPrefixMissingComments();
+    const key = prefixMissingCommentKey(dealId, fieldName);
+    if (comments[key]) return false;
+    await callMethod("crm.timeline.comment.add", {
+      fields: {
+        ENTITY_ID: Number(dealId),
+        ENTITY_TYPE: "deal",
+        COMMENT: `Номер сделки не создан: выбранное поле для префикса (${fieldName}) пустое. Заполните поле и повторите сохранение/перенумерацию.`,
+      },
+    });
+    comments[key] = new Date().toISOString();
+    await savePrefixMissingComments(comments);
+    return true;
+  }
+
   async function loadRenumberJob() {
     const data = await callMethod("app.option.get", { option: renumberJobOption }).catch(() => null);
     return optionJson(data, null);
@@ -83,6 +114,11 @@
     const deal = await callMethod("crm.deal.get", { id: Number(dealId) });
     const check = core.shouldGenerateForDeal(settings, deal, uniqueFieldName);
     if (!check.ok && !(overwrite && check.reason === "already-numbered")) return { ok: false, skipped: true, check, dealId };
+    const prefixProblem = core.prefixFieldProblem(settings, deal);
+    if (prefixProblem) {
+      await addPrefixMissingTimelineCommentOnce(dealId, prefixProblem.field || settings.prefixField);
+      return { ok: false, skipped: true, check: prefixProblem, dealId };
+    }
 
     let sequenceState = await loadSequenceState();
     let result = null;

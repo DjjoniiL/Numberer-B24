@@ -13,7 +13,10 @@
       <div>
         <h1>Нумератор сделок</h1>
       </div>
-      <button id="refresh" class="icon-button" type="button" title="Обновить справочники">↻</button>
+      <div class="topbar-actions">
+        <button id="supportHelp" type="button">Помощь</button>
+        <button id="refresh" class="icon-button" type="button" title="Обновить справочники">↻</button>
+      </div>
     </header>
 
     <form id="settingsForm" class="panel">
@@ -85,7 +88,7 @@
 
       <pre id="log" class="log" hidden></pre>
     </form>
-    <div id="appVersion" class="app-version">Numberer B24 v.3</div>
+    <div id="appVersion" class="app-version">Numberer B24 v.3.5</div>
   </main>
 
   <dialog id="helpModal">
@@ -94,6 +97,30 @@
       <button id="closeHelp" class="icon-button" type="button" title="Закрыть">×</button>
     </div>
     <p id="helpText"></p>
+  </dialog>
+
+  <div id="supportBackdrop" class="support-backdrop" hidden></div>
+  <dialog id="supportModal" class="support-modal">
+    <div class="modal-heading">
+      <h2>Помощь по приложению</h2>
+      <button id="closeSupport" class="icon-button" type="button" title="Закрыть">×</button>
+    </div>
+    <div class="support-content">
+      <p>
+        Приложение добавляет в сделку поле "Уникальный номер". Администратор выбирает, откуда брать префикс, длину буквенной и цифровой частей, режим генерации и стадии, на которых нужно выдавать номер. Если сделка попадает в выбранную стадию и её дата создания находится в диапазоне даты начала выборки - приложение формирует номер и записывает его в поле сделки. При сохранении настроек администратором, если обновлённые правила нумерации затронут старые сделки, попавшие в период выборки, то они будут перенумерованы заново по новым правилам.
+      </p>
+      <p>По умолчанию пользователь получает такие настройки:</p>
+      <ul>
+        <li>Префикс: вручную, значение <code>NUM</code>.</li>
+        <li>Формат номера: <code>NUM_AA0000</code>, дальше <code>NUM_AA0001</code>, <code>NUM_AA0002</code> и так далее.</li>
+        <li>Буквенная часть: 2 латинские буквы.</li>
+        <li>Цифровая часть: 4 цифры, диапазон <code>0000-9999</code>.</li>
+        <li>Режим: последовательная генерация.</li>
+        <li>Дата начала выборки: при установке ставится минус 14 дней от даты установки.</li>
+        <li>Стадии запуска: успешная стадия в каждой найденной воронке.</li>
+      </ul>
+      <p class="support-contact">Для помощи обратитесь к нам в чат.</p>
+    </div>
   </dialog>
 
   <script src="numbering-core.js"></script>

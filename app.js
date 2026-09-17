@@ -1,14 +1,17 @@
 (function () {
   "use strict";
 
-  const appVersion = "Numberer B24 v.3";
+  const appVersion = "Numberer B24 v.3.5";
   const settingsOption = "numbererB24Settings";
   const sequenceOption = "numbererB24SequenceState";
   const renumberJobOption = "numbererB24RenumberJob";
+  const prefixMissingCommentsOption = "numbererB24PrefixMissingComments";
   const uniqueFieldName = "UF_CRM_UNIQUE_NUMBER";
   const uniqueFieldShortName = "UNIQUE_NUMBER";
   const uniqueFieldTitle = "Уникальный номер";
+  const supportWidgetUrl = "https://cdn-ru.bitrix24.ru/b31051/crm/site_button/loader_9_no7zeu.js";
   const core = window.NumbererCore;
+  let supportWidgetLoading = null;
 
   const state = {
     settings: core.normalizeSettings(),
@@ -25,6 +28,7 @@
     settingsStatus: document.querySelector("#settingsStatus"),
     adminNotice: document.querySelector("#adminNotice"),
     prefixMode: document.querySelector("#prefixMode"),
+    appShell: document.querySelector(".app-shell"),
     manualPrefixWrap: document.querySelector("#manualPrefixWrap"),
     prefixFieldWrap: document.querySelector("#prefixFieldWrap"),
     prefixField: document.querySelector("#prefixField"),
@@ -36,6 +40,10 @@
     numberPreview: document.querySelector("#numberPreview"),
     log: document.querySelector("#log"),
     refresh: document.querySelector("#refresh"),
+    supportHelp: document.querySelector("#supportHelp"),
+    supportBackdrop: document.querySelector("#supportBackdrop"),
+    supportModal: document.querySelector("#supportModal"),
+    closeSupport: document.querySelector("#closeSupport"),
     helpModal: document.querySelector("#helpModal"),
     helpText: document.querySelector("#helpText"),
     closeHelp: document.querySelector("#closeHelp"),
@@ -89,6 +97,68 @@
     }
   }
 
+  function labelValue(value) {
+    if (!value) return "";
+    if (typeof value === "string") return value.trim();
+    if (typeof value !== "object") return String(value).trim();
+    for (const key of ["ru", "RU", "ua", "UA", "en", "EN", "text", "value"]) {
+      const label = labelValue(value[key]);
+      if (label) return label;
+    }
+    for (const item of Object.values(value)) {
+      const label = labelValue(item);
+      if (label) return label;
+    }
+    return "";
+  }
+
+  function isFieldCode(label, name) {
+    const value = String(label || "").trim().toUpperCase();
+    return !value || value === String(name || "").trim().toUpperCase() || /^UF_CRM(_|_DEAL_)?[A-Z0-9_]+$/.test(value);
+  }
+
+  function fieldTitle(field, name) {
+    const labels = [
+      field?.EDIT_FORM_LABEL,
+      field?.LIST_COLUMN_LABEL,
+      field?.LIST_FILTER_LABEL,
+      field?.TITLE,
+      field?.FORM_LABEL,
+      field?.LIST_LABEL,
+      field?.FILTER_LABEL,
+      field?.LABEL,
+      field?.NAME,
+      field?.title,
+      field?.formLabel,
+      field?.listLabel,
+      field?.filterLabel,
+      field?.label,
+      field?.name,
+      field?.caption,
+      field?.CAPTION,
+      field?.settings?.label,
+      field?.SETTINGS?.LABEL,
+      name,
+    ].map(labelValue).filter(Boolean);
+    return labels.find((label) => !isFieldCode(label, name)) || labels[0] || name;
+  }
+
+  function fieldOptionText(field) {
+    return isFieldCode(field.title, field.name) ? field.name : `${field.title} (${field.name})`;
+  }
+
+  function mergeStringFields(fields) {
+    const byName = new Map();
+    for (const field of fields) {
+      if (!field.name || String(field.name).toUpperCase() === uniqueFieldName) continue;
+      const existing = byName.get(field.name);
+      if (!existing || (isFieldCode(existing.title, existing.name) && !isFieldCode(field.title, field.name))) {
+        byName.set(field.name, field);
+      }
+    }
+    return [...byName.values()];
+  }
+
   async function loadSettings() {
     const data = await callMethod("app.option.get", { option: settingsOption }).catch(() => null);
     state.settings = core.normalizeSettings(optionJson(data, core.defaultSettings));
@@ -129,6 +199,36 @@
 
   async function saveSequenceState(sequenceState) {
     await callMethod("app.option.set", { options: { [sequenceOption]: JSON.stringify(sequenceState || {}) } });
+  }
+
+  async function loadPrefixMissingComments() {
+    const data = await callMethod("app.option.get", { option: prefixMissingCommentsOption }).catch(() => null);
+    return optionJson(data, {});
+  }
+
+  async function savePrefixMissingComments(stateMap) {
+    const entries = Object.entries(stateMap || {}).slice(-200);
+    await callMethod("app.option.set", { options: { [prefixMissingCommentsOption]: JSON.stringify(Object.fromEntries(entries)) } });
+  }
+
+  function prefixMissingCommentKey(settings, dealId, fieldName) {
+    return [Number(dealId), fieldName, settings.settingsRevision || "current"].join("|");
+  }
+
+  async function addPrefixMissingTimelineCommentOnce(dealId, fieldName) {
+    const comments = await loadPrefixMissingComments();
+    const key = prefixMissingCommentKey(state.settings, dealId, fieldName);
+    if (comments[key]) return false;
+    await callMethod("crm.timeline.comment.add", {
+      fields: {
+        ENTITY_ID: Number(dealId),
+        ENTITY_TYPE: "deal",
+        COMMENT: `Номер сделки не создан: выбранное поле для префикса (${fieldName}) пустое. Заполните поле и повторите сохранение/перенумерацию.`,
+      },
+    });
+    comments[key] = new Date().toISOString();
+    await savePrefixMissingComments(comments);
+    return true;
   }
 
   async function loadRenumberJob() {
@@ -236,13 +336,11 @@
     state.userFields = userFields;
     const regularStringFields = Object.entries(fields || {})
       .filter(([, field]) => field?.type === "string" && field?.isReadOnly !== true)
-      .map(([name, field]) => ({ name, title: field.title || field.formLabel || name }));
+      .map(([name, field]) => ({ name, title: fieldTitle(field, name) }));
     const customStringFields = userFields
       .filter((field) => String(field.USER_TYPE_ID || "").toLowerCase() === "string")
-      .map((field) => ({ name: field.FIELD_NAME, title: field.EDIT_FORM_LABEL || field.LIST_COLUMN_LABEL || field.FIELD_NAME }));
-    state.stringFields = [...regularStringFields, ...customStringFields]
-      .filter((field) => field.name && String(field.name).toUpperCase() !== uniqueFieldName)
-      .filter((field, index, list) => list.findIndex((item) => item.name === field.name) === index);
+      .map((field) => ({ name: field.FIELD_NAME, title: fieldTitle(field, field.FIELD_NAME) }));
+    state.stringFields = mergeStringFields([...customStringFields, ...regularStringFields]);
     return state.stringFields;
   }
 
@@ -361,7 +459,7 @@
     const options = state.stringFields.map((field) => {
       const option = document.createElement("option");
       option.value = field.name;
-      option.textContent = `${field.title} (${field.name})`;
+      option.textContent = fieldOptionText(field);
       return option;
     });
     if (!options.length) {
@@ -377,6 +475,9 @@
   }
 
   function renderStages() {
+    const compactStages = state.categories.length > 0 && state.categories.length < 4;
+    document.body.classList.toggle("compact-stages-page", compactStages);
+    nodes.appShell.classList.toggle("compact-stages", compactStages);
     nodes.stageMatrix.replaceChildren(...state.categories.map((category) => {
       const row = document.createElement("label");
       row.className = "stage-row";
@@ -457,6 +558,11 @@
     const deal = await callMethod("crm.deal.get", { id: Number(dealId) });
     const check = core.shouldGenerateForDeal(state.settings, deal, uniqueFieldName);
     if (!check.ok && !(overwrite && check.reason === "already-numbered")) return { ok: false, skipped: true, check, dealId };
+    const prefixProblem = core.prefixFieldProblem(state.settings, deal);
+    if (prefixProblem) {
+      await addPrefixMissingTimelineCommentOnce(dealId, prefixProblem.field || state.settings.prefixField);
+      return { ok: false, skipped: true, check: prefixProblem, dealId };
+    }
 
     let sequenceState = await loadSequenceState();
     let result = null;
@@ -642,6 +748,70 @@
     nodes.helpModal.showModal();
   }
 
+  function loadSupportWidget() {
+    if (supportWidgetLoading) return supportWidgetLoading;
+    supportWidgetLoading = new Promise((resolve, reject) => {
+      const existing = document.querySelector(`script[data-support-widget="open-line"]`);
+      if (existing) {
+        resolve();
+        return;
+      }
+      const script = document.createElement("script");
+      script.async = true;
+      script.dataset.supportWidget = "open-line";
+      script.src = `${supportWidgetUrl}?${Date.now() / 60000 | 0}`;
+      script.addEventListener("load", resolve, { once: true });
+      script.addEventListener("error", reject, { once: true });
+      const firstScript = document.getElementsByTagName("script")[0];
+      firstScript.parentNode.insertBefore(script, firstScript);
+    });
+    return supportWidgetLoading;
+  }
+
+  function openSupportWidget() {
+    const candidates = [
+      () => window.B24?.SiteButton?.show?.(),
+      () => window.B24?.SiteButton?.open?.(),
+      () => window.Bitrix24SiteButton?.show?.(),
+      () => window.Bitrix24SiteButton?.open?.(),
+    ];
+    for (const open of candidates) {
+      try {
+        const result = open();
+        if (result !== undefined) return true;
+      } catch {
+        // Widget APIs differ between loader versions; fall through to DOM click.
+      }
+    }
+    const button = document.querySelector(".b24-widget-button-openline, .b24-widget-button-social, .b24-widget-button-inner-container, [class*='b24-widget-button']");
+    if (button instanceof HTMLElement) {
+      button.click();
+      return true;
+    }
+    return false;
+  }
+
+  function forceOpenSupportWidget(attempt = 0) {
+    if (openSupportWidget()) return;
+    if (attempt >= 16) return;
+    window.setTimeout(() => forceOpenSupportWidget(attempt + 1), 300);
+  }
+
+  function closeSupport() {
+    nodes.supportModal.close();
+    nodes.supportBackdrop.hidden = true;
+    document.body.classList.remove("support-modal-open");
+  }
+
+  function showSupport() {
+    nodes.supportBackdrop.hidden = false;
+    if (!nodes.supportModal.open) nodes.supportModal.show();
+    document.body.classList.add("support-modal-open");
+    loadSupportWidget()
+      .then(() => forceOpenSupportWidget())
+      .catch((error) => write({ appVersion, ok: false, operation: "support-widget", error: error.message }, true));
+  }
+
   async function initApp() {
     if (!window.BX24) {
       setStatus("Откройте приложение внутри Bitrix24", "warning");
@@ -677,6 +847,12 @@
   });
   document.querySelectorAll(".help-button").forEach((button) => button.addEventListener("click", showHelp));
   nodes.closeHelp.addEventListener("click", () => nodes.helpModal.close());
+  nodes.supportHelp.addEventListener("click", showSupport);
+  nodes.closeSupport.addEventListener("click", closeSupport);
+  nodes.supportBackdrop.addEventListener("click", closeSupport);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && nodes.supportModal.open) closeSupport();
+  });
 
   nodes.form.addEventListener("submit", async (event) => {
     event.preventDefault();

@@ -33,6 +33,17 @@ test("uses string field as prefix source", () => {
   assert.equal(result.value, "ACME_AAAA0000");
 });
 
+test("detects empty selected prefix field", () => {
+  const settings = core.normalizeSettings({
+    prefixMode: "field",
+    prefixField: "UF_CRM_PREFIX",
+  });
+  assert.equal(core.prefixFieldProblem(settings, { UF_CRM_PREFIX: "" }).reason, "prefix-field-empty");
+  assert.equal(core.prefixFieldProblem(settings, { UF_CRM_PREFIX: "   " }).reason, "prefix-field-empty");
+  assert.equal(core.prefixFieldProblem(settings, { UF_CRM_PREFIX: "ACME" }), null);
+  assert.equal(core.prefixFieldProblem({ prefixMode: "manual" }, {}), null);
+});
+
 test("does not duplicate a prefix separator", () => {
   const settings = core.normalizeSettings({
     prefixMode: "manual",

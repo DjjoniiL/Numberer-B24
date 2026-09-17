@@ -4,8 +4,8 @@
 
 - Path: `C:\AI Project B24\Numberer B24`
 - App: `Numberer B24`
-- Runtime version label: `Numberer B24 v.3`
-- Current versioned zip: `dist app B24 zip/Numberer B24 v.3.zip`
+- Runtime version label: `Numberer B24 v.3.5`
+- Current versioned zip: `dist app B24 zip/Numberer B24 v.3.5.zip`
 
 ## Current State
 
@@ -28,6 +28,7 @@ Implemented:
 - Do not use `user_basic` unless new code starts reading contacts or richer user profiles.
 - Do not overwrite old Marketplace archives. Create a new versioned zip after runtime changes.
 - Runtime zip must contain only browser runtime files.
+- Do not commit generated Marketplace zip archives by default. Only one, maximum two, final/release zip archives may be committed/pushed, and only after the user explicitly approves pushing the zip.
 - Do not push unless the user explicitly asks.
 
 ## Checks
