@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const appVersion = "Numberer B24 worker v.3.5";
+  const appVersion = "Numberer B24 worker v.3.14";
   const settingsOption = "numbererB24Settings";
   const sequenceOption = "numbererB24SequenceState";
   const renumberJobOption = "numbererB24RenumberJob";
@@ -103,15 +103,40 @@
   }
 
   async function uniqueNumberExists(value, exceptDealId) {
-    const rows = await callList("crm.deal.list", {
+    const rows = await callItemList({
       filter: { [`=${uniqueFieldName}`]: value },
-      select: ["ID", uniqueFieldName],
+      select: ["id", uniqueFieldName],
     }).catch(() => []);
     return rows.some((deal) => Number(deal.ID) !== Number(exceptDealId));
   }
 
+  function normalizeCrmItemDeal(item) {
+    if (!item || !item.id) return null;
+    return {
+      ...item,
+      ID: item.id,
+      TITLE: item.title,
+      CATEGORY_ID: item.categoryId,
+      STAGE_ID: item.stageId,
+      DATE_CREATE: item.createdTime,
+    };
+  }
+
+  async function loadActiveDeal(dealId) {
+    const data = await callMethod("crm.item.get", {
+      entityTypeId: 2,
+      id: Number(dealId),
+      useOriginalUfNames: "Y",
+    }).catch((error) => {
+      if (/not.?found|not_found/i.test(error.message || "")) return null;
+      throw error;
+    });
+    return normalizeCrmItemDeal(data?.item || data);
+  }
+
   async function generateForDeal(dealId, { overwrite = false } = {}) {
-    const deal = await callMethod("crm.deal.get", { id: Number(dealId) });
+    const deal = await loadActiveDeal(dealId);
+    if (!deal) return { ok: false, skipped: true, check: { reason: "deal-not-found-or-deleted" }, dealId };
     const check = core.shouldGenerateForDeal(settings, deal, uniqueFieldName);
     if (!check.ok && !(overwrite && check.reason === "already-numbered")) return { ok: false, skipped: true, check, dealId };
     const prefixProblem = core.prefixFieldProblem(settings, deal);
@@ -158,6 +183,52 @@
     });
   }
 
+  function itemListPage(params, start = 0) {
+    return new Promise((resolve, reject) => {
+      window.BX24.callMethod("crm.item.list", {
+        ...params,
+        entityTypeId: 2,
+        useOriginalUfNames: "Y",
+        start,
+      }, (result) => {
+        if (result.error()) {
+          reject(new Error(result.error_description() || result.error()));
+          return;
+        }
+        const data = result.data() || {};
+        resolve({
+          rows: Array.isArray(data.items) ? data.items.map(normalizeCrmItemDeal).filter(Boolean) : [],
+          next: data.next ?? (result.more() ? result.next() : null),
+        });
+      });
+    });
+  }
+
+  async function callItemList(params = {}) {
+    const rows = [];
+    let start = 0;
+    do {
+      const page = await itemListPage(params, start);
+      rows.push(...page.rows);
+      start = page.next;
+    } while (start !== null && start !== undefined);
+    return rows;
+  }
+
+  function configuredDealFilter(categoryId, stageId) {
+    const filter = {
+      "=categoryId": Number(categoryId),
+      "=stageId": stageId,
+    };
+    const startDate = core.dateFilterValue(settings.startDate);
+    if (startDate) filter[">=createdTime"] = startDate;
+    return filter;
+  }
+
+  function configuredDealSelect() {
+    return ["id", "title", "categoryId", "stageId", "createdTime", uniqueFieldName, settings.prefixField].filter(Boolean);
+  }
+
   async function startRenumberJob() {
     const revision = settings.settingsRevision || "";
     await saveSequenceState({});
@@ -188,17 +259,10 @@
     const results = [];
     while (job.categoryIndex < entries.length && results.length < limit) {
       const [categoryId, stageId] = entries[job.categoryIndex];
-      const filter = {
-        "=CATEGORY_ID": Number(categoryId),
-        "=STAGE_ID": stageId,
-      };
-      const startDate = core.dateFilterValue(settings.startDate);
-      if (startDate) filter[">=DATE_CREATE"] = startDate;
-
-      const page = await dealListPage({
-        order: { ID: "ASC" },
-        filter,
-        select: ["ID", "CATEGORY_ID", "STAGE_ID", "DATE_CREATE", uniqueFieldName, settings.prefixField].filter(Boolean),
+      const page = await itemListPage({
+        order: { id: "ASC" },
+        filter: configuredDealFilter(categoryId, stageId),
+        select: configuredDealSelect(),
       }, Number(job.start || 0));
       const deals = page.rows.filter((deal) => core.isDealAfterStartDate(settings, deal));
       let batchUpdated = 0;
@@ -239,14 +303,10 @@
     const deals = [];
     for (const [categoryId, stageId] of Object.entries(settings.stagesByCategory || {})) {
       if (!stageId) continue;
-      const rows = await callList("crm.deal.list", {
-        order: { ID: "ASC" },
-        filter: {
-          "=CATEGORY_ID": Number(categoryId),
-          "=STAGE_ID": stageId,
-          ...(core.dateFilterValue(settings.startDate) ? { ">=DATE_CREATE": core.dateFilterValue(settings.startDate) } : {}),
-        },
-        select: ["ID", "CATEGORY_ID", "STAGE_ID", "DATE_CREATE", uniqueFieldName, settings.prefixField].filter(Boolean),
+      const rows = await callItemList({
+        order: { id: "ASC" },
+        filter: configuredDealFilter(categoryId, stageId),
+        select: configuredDealSelect(),
       }).catch(() => []);
       deals.push(...rows.filter((deal) => !String(deal[uniqueFieldName] || "").trim() && core.isDealAfterStartDate(settings, deal)));
     }

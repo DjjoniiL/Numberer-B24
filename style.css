@@ -16,6 +16,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -36,9 +40,19 @@ select {
   padding: 10px 0;
 }
 
+.app-shell {
+  width: min(calc(1120px + 2cm), calc(100vw - 24px));
+  margin-left: max(12px, calc((100vw - 1120px) / 2 - 2cm));
+  margin-right: auto;
+}
+
 body.compact-stages-page,
 body:has(.compact-stages) {
   overflow-y: hidden;
+}
+
+body.log-visible-page {
+  overflow-y: auto;
 }
 
 .compact-stages {
@@ -103,6 +117,8 @@ body:has(.compact-stages) {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 h1,
@@ -254,6 +270,76 @@ legend {
   min-width: 0;
 }
 
+.generation-settings {
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.generation-settings h3 {
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 32px;
+  margin-bottom: 8px;
+}
+
+.switch-row > span:first-child {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.switch-row input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.switch-control {
+  position: relative;
+  width: 50px;
+  height: 26px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #e8edf4;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+
+.switch-control::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(23, 32, 51, 0.22);
+  transition: transform 0.16s ease;
+}
+
+.switch-row input:checked + .switch-control {
+  border-color: var(--accent);
+  background: #d5edf4;
+}
+
+.switch-row input:checked + .switch-control::after {
+  transform: translateX(24px);
+}
+
+.field small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .mode-group .segmented,
 #letterChoices {
   flex-wrap: nowrap;
@@ -273,6 +359,7 @@ legend {
 
 .stage-panel .field,
 .stage-panel .preview,
+.stage-panel .generation-settings,
 .stage-panel .stage-matrix,
 .stage-panel h3 {
   width: min(100%, 360px);
@@ -392,16 +479,23 @@ button:hover {
   line-height: 1.15;
 }
 
+.log-panel {
+  margin-top: 16px;
+}
+
 .log {
-  overflow: auto;
-  max-height: 300px;
-  margin: 16px 0 0;
+  overflow: visible;
+  max-height: none;
+  min-height: 220px;
+  margin: 0;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: #101828;
   color: #e6edf6;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
 }
 
 dialog {
@@ -490,6 +584,7 @@ dialog::backdrop {
 
   .stage-panel .field,
   .stage-panel .preview,
+  .stage-panel .generation-settings,
   .stage-panel .stage-matrix,
   .stage-panel h3 {
     width: 100%;

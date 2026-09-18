@@ -6,8 +6,8 @@ Static Bitrix24 Marketplace-приложение для автоматическ
 
 ## Текущая версия
 
-- UI/runtime label: `Numberer B24 v.3.5`
-- Marketplace zip: `dist app B24 zip/Numberer B24 v.3.5.zip`
+- UI/runtime label: `Numberer B24 v.3.14`
+- Marketplace zip: `dist app B24 zip/Numberer B24 v.3.14.zip`
 
 ## Основные правила
 

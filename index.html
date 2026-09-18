@@ -14,6 +14,7 @@
         <h1>Нумератор сделок</h1>
       </div>
       <div class="topbar-actions">
+        <button id="toggleLog" type="button" aria-expanded="false">Журнал логирования</button>
         <button id="supportHelp" type="button">Помощь</button>
         <button id="refresh" class="icon-button" type="button" title="Обновить справочники">↻</button>
       </div>
@@ -21,7 +22,7 @@
 
     <form id="settingsForm" class="panel">
       <div class="panel-heading">
-        <h2>Настройки номера</h2>
+        <h2>Настройка работы нумератора</h2>
         <span id="settingsStatus" class="status">Загрузка...</span>
       </div>
       <p id="adminNotice" class="admin-notice" hidden>Для изменения настроек обратитесь к администратору вашего портала.</p>
@@ -46,6 +47,11 @@
             <select name="prefixField" id="prefixField"></select>
           </label>
 
+          <label class="field">
+            <span>Дата начала выборки</span>
+            <input type="date" name="startDate" id="startDate">
+          </label>
+
           <div class="number-options">
             <fieldset class="choice-group">
               <legend>Цифровая часть <button class="help-button" type="button" data-help="digits" title="Справка">?</button></legend>
@@ -68,15 +74,24 @@
         </div>
 
         <section class="stage-panel">
-          <label class="field">
-            <span>Дата начала выборки</span>
-            <input type="date" name="startDate" id="startDate">
-          </label>
-
           <div class="preview" aria-live="polite">
             <span>Пример номера</span>
             <strong id="numberPreview">LTE_AA0001</strong>
           </div>
+
+          <section class="generation-settings">
+            <h3>Режим генерации номера</h3>
+            <label class="switch-row">
+              <span id="customStartStatus">По умолчанию</span>
+              <input type="checkbox" name="customStartEnabled" id="customStartEnabled">
+              <span class="switch-control" aria-hidden="true"></span>
+            </label>
+            <label class="field" id="customStartWrap" hidden>
+              <span>Стартовый номер</span>
+              <input name="customStartValue" id="customStartValue" maxlength="11" placeholder="AA0000">
+              <small>Укажите буквенную и цифровую части номера без префикса сделки, например FSA00879</small>
+            </label>
+          </section>
 
           <h3>Стадии запуска по воронкам</h3>
           <div id="stageMatrix" class="stage-matrix"></div>
@@ -86,9 +101,11 @@
         </section>
       </div>
 
-      <pre id="log" class="log" hidden></pre>
+      <section id="logPanel" class="log-panel" hidden>
+        <pre id="log" class="log"></pre>
+      </section>
     </form>
-    <div id="appVersion" class="app-version">Numberer B24 v.3.5</div>
+    <div id="appVersion" class="app-version">Numberer B24 v.3.14</div>
   </main>
 
   <dialog id="helpModal">

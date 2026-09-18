@@ -18,6 +18,8 @@
     digits: 4,
     letterLength: 2,
     generationMode: "sequential",
+    customStartEnabled: false,
+    customStartValue: "",
     startDate: "",
     stagesByCategory: {},
   };
@@ -33,8 +35,11 @@
 
   function normalizeSettings(settings) {
     const source = settings && typeof settings === "object" ? settings : {};
-    const digits = digitOptions.includes(Number(source.digits)) ? Number(source.digits) : defaultSettings.digits;
-    const letterLength = letterOptions.includes(Number(source.letterLength)) ? Number(source.letterLength) : defaultSettings.letterLength;
+    const customStartEnabled = source.customStartEnabled === true || source.customStartEnabled === "on" || source.customStartEnabled === "true";
+    const customStartValue = normalizeStartNumberValue(source.customStartValue);
+    const customStartPattern = customStartEnabled ? parseStartNumberPattern(customStartValue) : null;
+    const digits = customStartPattern?.digits || (digitOptions.includes(Number(source.digits)) ? Number(source.digits) : defaultSettings.digits);
+    const letterLength = customStartPattern?.letterLength || (letterOptions.includes(Number(source.letterLength)) ? Number(source.letterLength) : defaultSettings.letterLength);
     return {
       ...defaultSettings,
       ...source,
@@ -43,7 +48,9 @@
       manualPrefix: String(source.manualPrefix || ""),
       digits,
       letterLength,
-      generationMode: source.generationMode === "random" ? "random" : "sequential",
+      generationMode: customStartEnabled ? "sequential" : (source.generationMode === "random" ? "random" : "sequential"),
+      customStartEnabled,
+      customStartValue,
       startDate: normalizeDateOnly(source.startDate),
       stagesByCategory: source.stagesByCategory && typeof source.stagesByCategory === "object" ? source.stagesByCategory : {},
     };
@@ -96,6 +103,49 @@
     return out;
   }
 
+  function lettersToIndex(letters) {
+    const value = String(letters || "").toUpperCase();
+    let index = 0;
+    for (let i = 0; i < value.length; i += 1) {
+      const code = alphabet.indexOf(value[i]);
+      if (code < 0) return null;
+      index = index * 26 + code;
+    }
+    return index;
+  }
+
+  function normalizeStartNumberValue(value) {
+    return String(value || "").trim().toUpperCase().replace(/[^0-9A-Z]/g, "");
+  }
+
+  function parseStartNumberPattern(value) {
+    const normalized = normalizeStartNumberValue(value);
+    const match = normalized.match(/^([A-Z]+)(\d+)$/);
+    if (!match) return null;
+    const letterLength = match[1].length;
+    const digits = match[2].length;
+    if (!letterOptions.includes(letterLength) || !digitOptions.includes(digits)) return null;
+    return {
+      value: normalized,
+      letters: match[1],
+      number: match[2],
+      letterLength,
+      digits,
+    };
+  }
+
+  function customStartSequence(settings) {
+    const normalized = normalizeSettings({ ...settings, customStartEnabled: false });
+    if (!settings?.customStartEnabled) return 0;
+    const pattern = parseStartNumberPattern(settings.customStartValue);
+    if (!pattern) return 0;
+    const letterIndex = lettersToIndex(pattern.letters);
+    if (letterIndex === null) return 0;
+    const sequence = letterIndex * numberCapacity(normalized.digits) + Number(pattern.number);
+    const capacity = pow26(normalized.letterLength) * numberCapacity(normalized.digits);
+    return sequence % capacity;
+  }
+
   function randomInt(max) {
     return Math.floor(Math.random() * Math.max(1, Number(max) || 1));
   }
@@ -109,7 +159,8 @@
   function sequenceKey(settings, categoryId) {
     const normalized = normalizeSettings(settings);
     const prefixKey = normalized.prefixMode === "field" ? `field:${normalized.prefixField}` : `manual:${cleanPrefix(normalized.manualPrefix)}`;
-    return [String(categoryId ?? "0"), prefixKey, normalized.digits, normalized.letterLength].join("|");
+    const startKey = normalized.customStartEnabled ? `start:${normalized.customStartValue}` : "start:default";
+    return [String(categoryId ?? "0"), prefixKey, normalized.digits, normalized.letterLength, startKey].join("|");
   }
 
   function buildNumber(settings, deal, sequenceState, categoryId) {
@@ -118,10 +169,11 @@
     const prefix = cleanPrefix(prefixSource);
     const key = sequenceKey(normalized, categoryId);
     const state = sequenceState && typeof sequenceState === "object" ? sequenceState : {};
-    const current = Number(state[key] || 0);
     const letterCapacity = pow26(normalized.letterLength);
     const numericCapacity = numberCapacity(normalized.digits);
     const sequenceCapacity = letterCapacity * numericCapacity;
+    const configuredStart = customStartSequence(normalized);
+    const current = state[key] === undefined || state[key] === null ? configuredStart : Number(state[key] || 0);
 
     let letters;
     let number;
@@ -218,6 +270,10 @@
     numberCapacity,
     formatNumber,
     lettersFromIndex,
+    lettersToIndex,
+    normalizeStartNumberValue,
+    parseStartNumberPattern,
+    customStartSequence,
     randomLetters,
     sequenceKey,
     buildNumber,

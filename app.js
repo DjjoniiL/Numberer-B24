@@ -1,11 +1,12 @@
 (function () {
   "use strict";
 
-  const appVersion = "Numberer B24 v.3.5";
+  const appVersion = "Numberer B24 v.3.14";
   const settingsOption = "numbererB24Settings";
   const sequenceOption = "numbererB24SequenceState";
   const renumberJobOption = "numbererB24RenumberJob";
   const prefixMissingCommentsOption = "numbererB24PrefixMissingComments";
+  const logStorageKey = "numbererB24LastLog";
   const uniqueFieldName = "UF_CRM_UNIQUE_NUMBER";
   const uniqueFieldShortName = "UNIQUE_NUMBER";
   const uniqueFieldTitle = "Уникальный номер";
@@ -33,12 +34,18 @@
     prefixFieldWrap: document.querySelector("#prefixFieldWrap"),
     prefixField: document.querySelector("#prefixField"),
     manualPrefix: document.querySelector("#manualPrefix"),
+    customStartEnabled: document.querySelector("#customStartEnabled"),
+    customStartStatus: document.querySelector("#customStartStatus"),
+    customStartWrap: document.querySelector("#customStartWrap"),
+    customStartValue: document.querySelector("#customStartValue"),
     startDate: document.querySelector("#startDate"),
     digitsChoices: document.querySelector("#digitsChoices"),
     letterChoices: document.querySelector("#letterChoices"),
     stageMatrix: document.querySelector("#stageMatrix"),
     numberPreview: document.querySelector("#numberPreview"),
+    logPanel: document.querySelector("#logPanel"),
     log: document.querySelector("#log"),
+    toggleLog: document.querySelector("#toggleLog"),
     refresh: document.querySelector("#refresh"),
     supportHelp: document.querySelector("#supportHelp"),
     supportBackdrop: document.querySelector("#supportBackdrop"),
@@ -83,9 +90,23 @@
     nodes.settingsStatus.dataset.tone = tone;
   }
 
+  function setLogVisible(visible) {
+    nodes.logPanel.hidden = !visible;
+    nodes.toggleLog.setAttribute("aria-expanded", String(visible));
+    document.body.classList.toggle("log-visible-page", visible);
+  }
+
   function write(value, reveal = true) {
-    nodes.log.hidden = !reveal;
-    nodes.log.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+    if (reveal) setLogVisible(true);
+    const text = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+    nodes.log.textContent = text;
+    localStorage.setItem(logStorageKey, text);
+  }
+
+  function restoreLastLog() {
+    const text = localStorage.getItem(logStorageKey);
+    if (!text) return;
+    nodes.log.textContent = text;
   }
 
   function optionJson(value, fallback) {
@@ -455,6 +476,28 @@
     nodes.prefixFieldWrap.hidden = !useField;
   }
 
+  function setRadioValue(name, value) {
+    const input = nodes.form.querySelector(`input[name="${name}"][value="${value}"]`);
+    if (input) input.checked = true;
+  }
+
+  function syncCustomStartControls() {
+    const enabled = nodes.customStartEnabled.checked;
+    nodes.customStartStatus.textContent = enabled ? "Свой стартовый номер" : "По умолчанию";
+    nodes.customStartWrap.hidden = !enabled;
+    nodes.customStartValue.disabled = !enabled || !state.isAdmin;
+  }
+
+  function syncNumberOptionsFromCustomStart() {
+    if (!nodes.customStartEnabled.checked) return;
+    const pattern = core.parseStartNumberPattern(nodes.customStartValue.value);
+    if (!pattern) return;
+    nodes.customStartValue.value = pattern.value;
+    setRadioValue("letterLength", pattern.letterLength);
+    setRadioValue("digits", pattern.digits);
+    nodes.form.elements.generationMode.value = "sequential";
+  }
+
   function renderFields(selectedValue = state.settings.prefixField) {
     const options = state.stringFields.map((field) => {
       const option = document.createElement("option");
@@ -475,7 +518,7 @@
   }
 
   function renderStages() {
-    const compactStages = state.categories.length > 0 && state.categories.length < 4;
+    const compactStages = state.categories.length > 0 && state.categories.length <= 2;
     document.body.classList.toggle("compact-stages-page", compactStages);
     nodes.appShell.classList.toggle("compact-stages", compactStages);
     nodes.stageMatrix.replaceChildren(...state.categories.map((category) => {
@@ -506,12 +549,15 @@
     const settings = state.settings;
     nodes.prefixMode.value = settings.prefixMode;
     nodes.manualPrefix.value = settings.manualPrefix;
+    nodes.customStartEnabled.checked = Boolean(settings.customStartEnabled);
+    nodes.customStartValue.value = settings.customStartValue;
     nodes.startDate.value = settings.startDate;
     renderFields(settings.prefixField);
     nodes.form.elements.generationMode.value = settings.generationMode;
     renderSegmented(nodes.digitsChoices, "digits", core.digitOptions, (value) => `${value} цифры`, settings.digits);
     renderSegmented(nodes.letterChoices, "letterLength", core.letterOptions, (value) => "A".repeat(value), settings.letterLength);
     renderPrefixFields();
+    syncCustomStartControls();
     renderStages();
     updatePreview();
   }
@@ -530,6 +576,8 @@
       digits: Number(data.get("digits")),
       letterLength: Number(data.get("letterLength")),
       generationMode: data.get("generationMode"),
+      customStartEnabled: data.get("customStartEnabled"),
+      customStartValue: data.get("customStartValue"),
       startDate: data.get("startDate"),
       stagesByCategory,
     });
@@ -541,21 +589,46 @@
     const deal = { [settings.prefixField]: prefix };
     const sequenceState = {};
     const key = core.sequenceKey(settings, 0);
-    sequenceState[key] = 1;
+    if (!settings.customStartEnabled) sequenceState[key] = 1;
     const result = core.buildNumber(settings, deal, sequenceState, 0);
     nodes.numberPreview.textContent = result.value || `${"A".repeat(settings.letterLength)}${"0".repeat(settings.digits)}`;
   }
 
   async function uniqueNumberExists(value, exceptDealId) {
-    const rows = await callList("crm.deal.list", {
+    const rows = await callItemList({
       filter: { [`=${uniqueFieldName}`]: value },
-      select: ["ID", uniqueFieldName],
+      select: ["id", uniqueFieldName],
     }).catch(() => []);
     return rows.some((deal) => Number(deal.ID) !== Number(exceptDealId));
   }
 
+  function normalizeCrmItemDeal(item) {
+    if (!item || !item.id) return null;
+    return {
+      ...item,
+      ID: item.id,
+      TITLE: item.title,
+      CATEGORY_ID: item.categoryId,
+      STAGE_ID: item.stageId,
+      DATE_CREATE: item.createdTime,
+    };
+  }
+
+  async function loadActiveDeal(dealId) {
+    const data = await callMethod("crm.item.get", {
+      entityTypeId: 2,
+      id: Number(dealId),
+      useOriginalUfNames: "Y",
+    }).catch((error) => {
+      if (/not.?found|not_found/i.test(error.message || "")) return null;
+      throw error;
+    });
+    return normalizeCrmItemDeal(data?.item || data);
+  }
+
   async function generateForDeal(dealId, { overwrite = false } = {}) {
-    const deal = await callMethod("crm.deal.get", { id: Number(dealId) });
+    const deal = await loadActiveDeal(dealId);
+    if (!deal) return { ok: false, skipped: true, check: { reason: "deal-not-found-or-deleted" }, dealId };
     const check = core.shouldGenerateForDeal(state.settings, deal, uniqueFieldName);
     if (!check.ok && !(overwrite && check.reason === "already-numbered")) return { ok: false, skipped: true, check, dealId };
     const prefixProblem = core.prefixFieldProblem(state.settings, deal);
@@ -604,6 +677,61 @@
     });
   }
 
+  function itemListPage(params, start = 0) {
+    return new Promise((resolve, reject) => {
+      window.BX24.callMethod("crm.item.list", {
+        ...params,
+        entityTypeId: 2,
+        useOriginalUfNames: "Y",
+        start,
+      }, (result) => {
+        if (result.error()) {
+          reject(new Error(result.error_description() || result.error()));
+          return;
+        }
+        const data = result.data() || {};
+        resolve({
+          rows: Array.isArray(data.items) ? data.items.map(normalizeCrmItemDeal).filter(Boolean) : [],
+          next: data.next ?? (result.more() ? result.next() : null),
+        });
+      });
+    });
+  }
+
+  async function callItemList(params = {}) {
+    const rows = [];
+    let start = 0;
+    do {
+      const page = await itemListPage(params, start);
+      rows.push(...page.rows);
+      start = page.next;
+    } while (start !== null && start !== undefined);
+    return rows;
+  }
+
+  function configuredDealFilter(categoryId, stageId, settings) {
+    const filter = {
+      "=categoryId": Number(categoryId),
+      "=stageId": stageId,
+    };
+    const startDate = core.dateFilterValue(settings.startDate);
+    if (startDate) filter[">=createdTime"] = startDate;
+    return filter;
+  }
+
+  function configuredDealSelect(settings) {
+    return ["id", "title", "categoryId", "stageId", "createdTime", uniqueFieldName, settings.prefixField].filter(Boolean);
+  }
+
+  function selectionLog(settings) {
+    return configuredStageEntries(settings).map(([categoryId, stageId]) => ({
+      categoryId: Number(categoryId),
+      stageId,
+      filter: configuredDealFilter(categoryId, stageId, settings),
+      select: configuredDealSelect(settings),
+    }));
+  }
+
   async function startRenumberJob(settings) {
     const revision = settings.settingsRevision || new Date().toISOString();
     await saveSequenceState({});
@@ -638,17 +766,10 @@
     const results = [];
     while (job.categoryIndex < entries.length && results.length < limit) {
       const [categoryId, stageId] = entries[job.categoryIndex];
-      const filter = {
-        "=CATEGORY_ID": Number(categoryId),
-        "=STAGE_ID": stageId,
-      };
-      const startDate = core.dateFilterValue(settings.startDate);
-      if (startDate) filter[">=DATE_CREATE"] = startDate;
-
-      const page = await dealListPage({
-        order: { ID: "ASC" },
-        filter,
-        select: ["ID", "TITLE", "CATEGORY_ID", "STAGE_ID", "DATE_CREATE", uniqueFieldName, settings.prefixField].filter(Boolean),
+      const page = await itemListPage({
+        order: { id: "ASC" },
+        filter: configuredDealFilter(categoryId, stageId, settings),
+        select: configuredDealSelect(settings),
       }, Number(job.start || 0));
       const deals = page.rows.filter((deal) => core.isDealAfterStartDate(settings, deal));
       let batchUpdated = 0;
@@ -689,16 +810,10 @@
     const deals = [];
     for (const [categoryId, stageId] of Object.entries(settings.stagesByCategory || {})) {
       if (!stageId) continue;
-      const filter = {
-        "=CATEGORY_ID": Number(categoryId),
-        "=STAGE_ID": stageId,
-      };
-      const startDate = core.dateFilterValue(settings.startDate);
-      if (startDate) filter[">=DATE_CREATE"] = startDate;
-      const rows = await callList("crm.deal.list", {
-        order: { ID: "ASC" },
-        filter,
-        select: ["ID", "TITLE", "CATEGORY_ID", "STAGE_ID", "DATE_CREATE", uniqueFieldName, settings.prefixField].filter(Boolean),
+      const rows = await callItemList({
+        order: { id: "ASC" },
+        filter: configuredDealFilter(categoryId, stageId, settings),
+        select: configuredDealSelect(settings),
       }).catch(() => []);
       deals.push(...rows.filter((deal) => (includeNumbered || !String(deal[uniqueFieldName] || "").trim()) && core.isDealAfterStartDate(settings, deal)));
     }
@@ -820,6 +935,7 @@
     }
     window.BX24.init(async () => {
       nodes.appVersionNode.textContent = appVersion;
+      restoreLastLog();
       setStatus("Загрузка...");
       await loadAdminAccess();
       await Promise.all([loadCategories(), loadDealFields()]);
@@ -838,7 +954,19 @@
     renderPrefixFields();
     updatePreview();
   });
+  nodes.customStartEnabled.addEventListener("change", () => {
+    syncCustomStartControls();
+    syncNumberOptionsFromCustomStart();
+    updatePreview();
+  });
+  nodes.customStartValue.addEventListener("input", () => {
+    syncNumberOptionsFromCustomStart();
+    updatePreview();
+  });
   nodes.form.addEventListener("input", updatePreview);
+  nodes.toggleLog.addEventListener("click", () => {
+    setLogVisible(nodes.logPanel.hidden);
+  });
   nodes.refresh.addEventListener("click", () => {
     reloadReferenceData().catch((error) => {
       setStatus("Ошибка обновления", "warning");
@@ -867,7 +995,7 @@
       await startRenumberJob(settings);
       const processing = await processRenumberJobBatch(settings, 30);
       setStatus(processing.done ? `Сохранено. Обновлено номеров: ${processing.totalUpdated}` : `Сохранено. Перенумерация запущена, обновлено: ${processing.totalUpdated}`, "success");
-      write({ appVersion, ok: true, operation: "save-settings-and-start-renumber", settings, processing });
+      write({ appVersion, ok: true, operation: "save-settings-and-start-renumber", settings, selection: selectionLog(settings), processing });
     } catch (error) {
       setStatus("Ошибка сохранения", "warning");
       write({ appVersion, ok: false, operation: "save-settings-and-number", error: error.message });

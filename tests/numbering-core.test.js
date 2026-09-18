@@ -33,6 +33,37 @@ test("uses string field as prefix source", () => {
   assert.equal(result.value, "ACME_AAAA0000");
 });
 
+test("uses custom start number and derives number shape", () => {
+  const settings = core.normalizeSettings({
+    prefixMode: "manual",
+    manualPrefix: "NUM",
+    customStartEnabled: true,
+    customStartValue: "AAA123456",
+  });
+  assert.equal(settings.letterLength, 3);
+  assert.equal(settings.digits, 6);
+  assert.equal(settings.generationMode, "sequential");
+  assert.equal(core.customStartSequence(settings), 123456);
+  const first = core.buildNumber(settings, {}, {}, 0);
+  assert.equal(first.value, "NUM_AAA123456");
+  const second = core.buildNumber(settings, {}, { [first.key]: first.nextSequence }, 0);
+  assert.equal(second.value, "NUM_AAA123457");
+});
+
+test("accepts separator inside custom start value", () => {
+  const settings = core.normalizeSettings({
+    prefixMode: "field",
+    prefixField: "UF_CRM_PREFIX",
+    customStartEnabled: true,
+    customStartValue: "FSA_008791",
+  });
+  assert.equal(settings.customStartValue, "FSA008791");
+  assert.equal(settings.letterLength, 3);
+  assert.equal(settings.digits, 6);
+  const first = core.buildNumber(settings, { UF_CRM_PREFIX: "LTE" }, {}, 0);
+  assert.equal(first.value, "LTE_FSA008791");
+});
+
 test("detects empty selected prefix field", () => {
   const settings = core.normalizeSettings({
     prefixMode: "field",
