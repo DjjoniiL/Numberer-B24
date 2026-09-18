@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const appVersion = "Numberer B24 v.3.14";
+  const appVersion = "Numberer B24 v.3.15";
   const settingsOption = "numbererB24Settings";
   const sequenceOption = "numbererB24SequenceState";
   const renumberJobOption = "numbererB24RenumberJob";
@@ -738,8 +738,11 @@
     const job = {
       active: true,
       revision,
+      phase: "clear",
       categoryIndex: 0,
       start: 0,
+      clearProcessed: 0,
+      cleared: 0,
       processed: 0,
       updated: 0,
       startedAt: new Date().toISOString(),
@@ -752,19 +755,56 @@
     const entries = configuredStageEntries(settings);
     let job = await loadRenumberJob();
     if (!settings.settingsRevision || !entries.length) {
-      job = { active: false, revision: settings.settingsRevision || "", completedAt: new Date().toISOString(), processed: 0, updated: 0 };
+      job = { active: false, revision: settings.settingsRevision || "", completedAt: new Date().toISOString(), phase: "done", clearProcessed: 0, cleared: 0, processed: 0, updated: 0 };
       await saveRenumberJob(job);
-      return { active: false, processed: 0, updated: 0, done: true };
+      return { active: false, phase: "done", cleared: 0, processed: 0, updated: 0, done: true };
     }
     if (job && job.revision === settings.settingsRevision && job.active === false) {
-      return { active: false, processed: 0, updated: 0, totalProcessed: job.processed || 0, totalUpdated: job.updated || 0, done: true, revision: job.revision };
+      return { active: false, phase: job.phase || "done", processed: 0, updated: 0, totalClearProcessed: job.clearProcessed || 0, totalCleared: job.cleared || 0, totalProcessed: job.processed || 0, totalUpdated: job.updated || 0, done: true, revision: job.revision };
     }
     if (!job || job.revision !== settings.settingsRevision) {
       job = await startRenumberJob(settings);
     }
+    job.phase = job.phase || "number";
 
     const results = [];
-    while (job.categoryIndex < entries.length && results.length < limit) {
+    while (results.length < limit && job.active !== false) {
+      if (job.phase === "clear") {
+        if (job.categoryIndex >= entries.length) {
+          job.phase = "number";
+          job.categoryIndex = 0;
+          job.start = 0;
+          await saveRenumberJob(job);
+          continue;
+        }
+        const [categoryId, stageId] = entries[job.categoryIndex];
+        const page = await itemListPage({
+          order: { id: "ASC" },
+          filter: configuredDealFilter(categoryId, stageId, settings),
+          select: configuredDealSelect(settings),
+        }, Number(job.start || 0));
+        const deals = page.rows.filter((deal) => core.isDealAfterStartDate(settings, deal));
+        let batchCleared = 0;
+        for (const deal of deals) {
+          if (String(deal[uniqueFieldName] || "").trim()) {
+            await callMethod("crm.deal.update", { id: Number(deal.ID), fields: { [uniqueFieldName]: "" } });
+            batchCleared += 1;
+            results.push({ ok: true, dealId: deal.ID, cleared: true });
+          }
+        }
+        job.clearProcessed = (job.clearProcessed || 0) + deals.length;
+        job.cleared = (job.cleared || 0) + batchCleared;
+        if (page.next !== null && page.next !== undefined) {
+          job.start = page.next;
+        } else {
+          job.categoryIndex += 1;
+          job.start = 0;
+        }
+        await saveRenumberJob(job);
+        continue;
+      }
+
+      if (job.categoryIndex >= entries.length) break;
       const [categoryId, stageId] = entries[job.categoryIndex];
       const page = await itemListPage({
         order: { id: "ASC" },
@@ -774,7 +814,6 @@
       const deals = page.rows.filter((deal) => core.isDealAfterStartDate(settings, deal));
       let batchUpdated = 0;
       for (const deal of deals) {
-        if (results.length >= limit) break;
         const result = await generateForDeal(deal.ID, { overwrite: true });
         if (result.ok) batchUpdated += 1;
         results.push(result);
@@ -790,15 +829,27 @@
       await saveRenumberJob(job);
     }
 
-    if (job.categoryIndex >= entries.length) {
+    if (job.phase === "clear" && job.categoryIndex >= entries.length) {
+      job.phase = "number";
+      job.categoryIndex = 0;
+      job.start = 0;
+      await saveRenumberJob(job);
+    }
+
+    if (job.phase !== "clear" && job.categoryIndex >= entries.length) {
       job.active = false;
+      job.phase = "done";
       job.completedAt = new Date().toISOString();
       await saveRenumberJob(job);
     }
     return {
       active: job.active,
+      phase: job.phase,
       processed: results.length,
-      updated: results.filter((item) => item.ok).length,
+      updated: results.filter((item) => item.ok && !item.cleared).length,
+      cleared: results.filter((item) => item.cleared).length,
+      totalClearProcessed: job.clearProcessed || 0,
+      totalCleared: job.cleared || 0,
       totalProcessed: job.processed,
       totalUpdated: job.updated,
       done: !job.active,
@@ -994,7 +1045,7 @@
       const settings = await saveSettings({ ...settingsFromForm(), settingsRevision: new Date().toISOString() });
       await startRenumberJob(settings);
       const processing = await processRenumberJobBatch(settings, 30);
-      setStatus(processing.done ? `Сохранено. Обновлено номеров: ${processing.totalUpdated}` : `Сохранено. Перенумерация запущена, обновлено: ${processing.totalUpdated}`, "success");
+      setStatus(processing.done ? `Сохранено. Очищено старых номеров: ${processing.totalCleared}, обновлено номеров: ${processing.totalUpdated}` : `Сохранено. Перенумерация запущена, очищено: ${processing.totalCleared}, обновлено: ${processing.totalUpdated}`, "success");
       write({ appVersion, ok: true, operation: "save-settings-and-start-renumber", settings, selection: selectionLog(settings), processing });
     } catch (error) {
       setStatus("Ошибка сохранения", "warning");

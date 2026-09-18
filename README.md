@@ -2,9 +2,9 @@
 
 Статическое Bitrix24 Marketplace-приложение для автоматической нумерации сделок.
 
-Текущая версия приложения: `Numberer B24 v.3.14`.
+Текущая версия приложения: `Numberer B24 v.3.15`.
 
-Текущий тестовый Marketplace-архив: `dist app B24 zip/Numberer B24 v.3.14.zip`.
+Текущий тестовый Marketplace-архив: `dist app B24 zip/Numberer B24 v.3.15.zip`.
 
 ## Что Делает Приложение
 

@@ -2,9 +2,9 @@
 
 Проект: `C:\AI Project B24\Numberer B24`.
 
-Приложение: Bitrix24 Marketplace static app `Numberer B24`, runtime label `Numberer B24 v.3.14`.
+Приложение: Bitrix24 Marketplace static app `Numberer B24`, runtime label `Numberer B24 v.3.15`.
 
-Текущий zip должен быть versioned: `dist app B24 zip/Numberer B24 v.3.14.zip`. Не перезаписывать уже созданные архивы; после runtime-изменений поднять версию и собрать новый zip.
+Текущий zip должен быть versioned: `dist app B24 zip/Numberer B24 v.3.15.zip`. Не перезаписывать уже созданные архивы; после runtime-изменений поднять версию и собрать новый zip.
 
 Ключевое поведение:
 
