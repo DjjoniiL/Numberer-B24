@@ -33,6 +33,20 @@ test("uses string field as prefix source", () => {
   assert.equal(result.value, "ACME_AAAA0000");
 });
 
+test("reads Bitrix custom fields by original and camel aliases", () => {
+  assert.equal(core.fieldValue({ ufCrm1789543990987: "FSA" }, "UF_CRM_1789543990987"), "FSA");
+  assert.equal(core.fieldValue({ UF_CRM_UNIQUE_NUMBER: "NUM_AA001" }, "ufCrmUniqueNumber"), "NUM_AA001");
+
+  const settings = core.normalizeSettings({
+    prefixMode: "field",
+    prefixField: "UF_CRM_1789543990987",
+    digits: 5,
+    letterLength: 3,
+  });
+  const deal = { ufCrm1789543990987: "LTE", categoryId: 0, stageId: "EXECUTING" };
+  assert.equal(core.buildNumber(settings, deal, {}, 0).value, "LTE_AAA00000");
+});
+
 test("uses custom start number and derives number shape", () => {
   const settings = core.normalizeSettings({
     prefixMode: "manual",
@@ -98,6 +112,7 @@ test("checks configured target stage and existing number", () => {
   assert.equal(core.shouldGenerateForDeal(settings, { CATEGORY_ID: 0, STAGE_ID: "NEW" }, "UF_CRM_UNIQUE_NUMBER").ok, true);
   assert.equal(core.shouldGenerateForDeal(settings, { CATEGORY_ID: 0, STAGE_ID: "WON" }, "UF_CRM_UNIQUE_NUMBER").reason, "stage-mismatch");
   assert.equal(core.shouldGenerateForDeal(settings, { CATEGORY_ID: 0, STAGE_ID: "NEW", UF_CRM_UNIQUE_NUMBER: "A" }, "UF_CRM_UNIQUE_NUMBER").reason, "already-numbered");
+  assert.equal(core.shouldGenerateForDeal(settings, { categoryId: 0, STAGE_ID: "NEW", ufCrmUniqueNumber: "A" }, "UF_CRM_UNIQUE_NUMBER").reason, "already-numbered");
 });
 
 test("skips deals created before the configured start date", () => {

@@ -77,6 +77,18 @@
       .slice(0, 32);
   }
 
+  function normalizeFieldKey(value) {
+    return String(value || "").replace(/[^0-9A-Za-z]/g, "").toUpperCase();
+  }
+
+  function fieldValue(record, fieldName) {
+    if (!record || !fieldName) return undefined;
+    if (Object.prototype.hasOwnProperty.call(record, fieldName)) return record[fieldName];
+    const target = normalizeFieldKey(fieldName);
+    const found = Object.keys(record).find((key) => normalizeFieldKey(key) === target);
+    return found ? record[found] : undefined;
+  }
+
   function pow26(length) {
     return Math.pow(26, Number(length) || 0);
   }
@@ -165,7 +177,7 @@
 
   function buildNumber(settings, deal, sequenceState, categoryId) {
     const normalized = normalizeSettings(settings);
-    const prefixSource = normalized.prefixMode === "field" ? deal?.[normalized.prefixField] : normalized.manualPrefix;
+    const prefixSource = normalized.prefixMode === "field" ? fieldValue(deal, normalized.prefixField) : normalized.manualPrefix;
     const prefix = cleanPrefix(prefixSource);
     const key = sequenceKey(normalized, categoryId);
     const state = sequenceState && typeof sequenceState === "object" ? sequenceState : {};
@@ -203,7 +215,7 @@
     const normalized = normalizeSettings(settings);
     if (normalized.prefixMode !== "field") return null;
     if (!normalized.prefixField) return { reason: "prefix-field-not-selected" };
-    const rawValue = deal?.[normalized.prefixField];
+    const rawValue = fieldValue(deal, normalized.prefixField);
     if (cleanPrefix(rawValue)) return null;
     return {
       reason: "prefix-field-empty",
@@ -251,7 +263,7 @@
     if (!targetStage) return { ok: false, reason: "stage-not-configured", categoryId };
     if (String(deal?.STAGE_ID || "") !== String(targetStage)) return { ok: false, reason: "stage-mismatch", categoryId, targetStage };
     if (!isDealAfterStartDate(normalized, deal)) return { ok: false, reason: "created-before-start-date", categoryId, targetStage, startDate: normalized.startDate };
-    if (uniqueField && String(deal?.[uniqueField] || "").trim()) return { ok: false, reason: "already-numbered", categoryId, targetStage };
+    if (uniqueField && String(fieldValue(deal, uniqueField) || "").trim()) return { ok: false, reason: "already-numbered", categoryId, targetStage };
     return { ok: true, categoryId, targetStage };
   }
 
@@ -265,6 +277,8 @@
     normalizeDateOnly,
     dateFilterValue,
     cleanPrefix,
+    normalizeFieldKey,
+    fieldValue,
     prefixFieldProblem,
     pow26,
     numberCapacity,

@@ -4,8 +4,8 @@
 
 - Path: `C:\AI Project B24\Numberer B24`
 - App: `Numberer B24`
-- Runtime version label: `Numberer B24 v.3.15`
-- Current versioned zip: `dist app B24 zip/Numberer B24 v.3.15.zip`
+- Runtime version label: `Numberer B24 v.3.17`
+- Current versioned zip: `dist app B24 zip/Numberer B24 v.3.17.zip`
 
 ## Current State
 
@@ -18,7 +18,7 @@ Implemented:
 - Persistent settings in `app.option`.
 - Default settings on first install.
 - Date cutoff by `DATE_CREATE`.
-- Full renumbering of matching deals after admin save.
+- Numbering of matching deals with empty `UF_CRM_UNIQUE_NUMBER` after admin save; existing numbers are preserved.
 - Worker processing of matching unnumbered deals.
 - Versioned zip build script.
 
@@ -47,4 +47,5 @@ Before handing off a new build, inspect zip contents and remind the user to test
 2. Open as non-admin and confirm settings are blocked with the admin notice.
 3. Open as admin and save default settings.
 4. Move a new deal into the selected successful stage and confirm `Уникальный номер`.
-5. Change settings and confirm matching deals after the cutoff are renumbered.
+5. Change settings and confirm matching deals with existing numbers keep their values.
+6. Confirm `v.3.17` on the Bitrix24 test portal; it has not been verified there yet.
