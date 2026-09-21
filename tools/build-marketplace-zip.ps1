@@ -6,7 +6,7 @@ $ErrorActionPreference = "Stop"
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $DistDir = Join-Path $ProjectRoot "dist app B24 zip"
 $ProductName = "Numberer B24"
-$AppVersion = "3.17"
+$AppVersion = "4"
 
 if (-not $OutputPath) {
   $OutputPath = Join-Path $DistDir "$ProductName v.$AppVersion.zip"

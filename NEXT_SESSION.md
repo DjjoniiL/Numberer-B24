@@ -2,14 +2,16 @@
 
 ## Project
 
-- Path: `C:\AI Project B24\Numberer B24`
+- Path: `G:\AI Project B24\Numberer B24`
 - App: `Numberer B24`
-- Runtime version label: `Numberer B24 v.3.17`
-- Current versioned zip: `dist app B24 zip/Numberer B24 v.3.17.zip`
+- Runtime version label: `Numberer B24 v.4`
+- Current versioned zip: `dist app B24 zip/Numberer B24 v.4.zip`
 
 ## Current State
 
 The app is a static Bitrix24 Marketplace app. It creates and fills `UF_CRM_UNIQUE_NUMBER` in deals according to admin settings.
+
+Version `v.4` is the final naming of the tested `v.3.18` behavior.
 
 Implemented:
 
@@ -18,8 +20,15 @@ Implemented:
 - Persistent settings in `app.option`.
 - Default settings on first install.
 - Date cutoff by `DATE_CREATE`.
-- Numbering of matching deals with empty `UF_CRM_UNIQUE_NUMBER` after admin save; existing numbers are preserved.
+- Numbering of matching deals with empty `UF_CRM_UNIQUE_NUMBER` after admin save.
+- Preservation of existing numbers in old deals.
+- Skipping deleted or unavailable deals through an additional `crm.item.get` check.
+- Prefix from manual value or from selected deal field.
+- Timeline comment when selected prefix field is empty.
+- Custom start number mode.
+- Automatic digit/letter option sync from custom start value.
 - Worker processing of matching unnumbered deals.
+- Toggleable logging journal with app scrolling when opened.
 - Versioned zip build script.
 
 ## Important Rules
@@ -28,7 +37,9 @@ Implemented:
 - Do not use `user_basic` unless new code starts reading contacts or richer user profiles.
 - Do not overwrite old Marketplace archives. Create a new versioned zip after runtime changes.
 - Runtime zip must contain only browser runtime files.
-- Do not commit generated Marketplace zip archives by default. Only one, maximum two, final/release zip archives may be committed/pushed, and only after the user explicitly approves pushing the zip.
+- Do not commit generated Marketplace zip archives by default.
+- Only one, maximum two, final/release zip archives may be committed/pushed, and only after the user explicitly approves pushing the zip.
+- User explicitly approved pushing `Numberer B24 v.4.zip`.
 - Do not push unless the user explicitly asks.
 
 ## Checks
@@ -39,13 +50,18 @@ npm run lint
 powershell -ExecutionPolicy Bypass -File .\tools\build-marketplace-zip.ps1
 ```
 
-Before handing off a new build, inspect zip contents and remind the user to test on the Bitrix24 test portal.
+Before handing off a new build, inspect zip contents and remind the user to smoke-check the installed zip on the Bitrix24 test portal.
 
-## Pending Manual Test
+## Manual Test Status
 
-1. Install/update the versioned zip on the test portal.
-2. Open as non-admin and confirm settings are blocked with the admin notice.
-3. Open as admin and save default settings.
-4. Move a new deal into the selected successful stage and confirm `Уникальный номер`.
-5. Change settings and confirm matching deals with existing numbers keep their values.
-6. Confirm `v.3.17` on the Bitrix24 test portal; it has not been verified there yet.
+User tested version `v.3.18` successfully:
+
+- manual prefix works;
+- prefix from deal field works;
+- custom start number works;
+- old filled values in `Уникальный номер` are preserved;
+- admin/non-admin access works;
+- logging journal works;
+- settings persist after refresh.
+
+Version `v.4` should be treated as the final release label for that verified behavior.

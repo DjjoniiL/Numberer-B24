@@ -1,7 +1,7 @@
 {
   "name": "numberer-b24",
-  "version": "1.0.0",
-  "description": "Static Bitrix24 Marketplace app for assigning unique deal numbers.",
+  "version": "4.0.0",
+  "description": "Bitrix24 Marketplace app for assigning unique deal numbers.",
   "type": "commonjs",
   "scripts": {
     "test": "node --test .\\tests\\*.js",
