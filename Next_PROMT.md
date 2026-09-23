@@ -2,7 +2,7 @@
 
 Проект: `G:\AI Project B24\Numberer B24`.
 
-Приложение: Bitrix24 Marketplace static app `Numberer B24`, runtime label `Numberer B24 v.4`.
+Приложение: Bitrix24 Marketplace static app `Нумератор сделок - свои правила генерации`, runtime label `Нумератор сделок - свои правила генерации v.4`.
 
 Текущий финальный zip: `dist app B24 zip/Numberer B24 v.4.zip`.
 

@@ -19,3 +19,9 @@ test("worker uses a short polling interval for faster deal updates", () => {
   const workerSource = readRuntimeFile("worker.js");
   assert.match(workerSource, /const pollMs = 5000;/);
 });
+
+test("uses full app name for the page title and short menu title in the UI", () => {
+  const indexSource = readRuntimeFile("index.html");
+  assert.match(indexSource, /<title>Нумератор сделок - свои правила генерации<\/title>/);
+  assert.match(indexSource, /<h1>Нумератор сделок<\/h1>/);
+});

@@ -1,13 +1,13 @@
-# Numberer B24 Project Specification
+# Нумератор сделок - свои правила генерации Project Specification
 
 ## Назначение
 
-`Numberer B24` — статическое Bitrix24 Marketplace-приложение для автоматической записи уникального номера в сделки.
+`Нумератор сделок - свои правила генерации` — статическое Bitrix24 Marketplace-приложение для автоматической записи уникального номера в сделки.
 
 ## Финальная Версия
 
-- UI/runtime label: `Numberer B24 v.4`
-- Worker label: `Numberer B24 worker v.4`
+- UI/runtime label: `Нумератор сделок - свои правила генерации v.4`
+- Worker label: `Нумератор сделок worker v.4`
 - Marketplace zip: `dist app B24 zip/Numberer B24 v.4.zip`
 - Статус: логика `v.3.18` проверена на тестовом портале во всех трёх режимах и финализирована как `v.4`.
 

@@ -3,8 +3,8 @@
 ## Project
 
 - Path: `G:\AI Project B24\Numberer B24`
-- App: `Numberer B24`
-- Runtime version label: `Numberer B24 v.4`
+- App: `Нумератор сделок - свои правила генерации`
+- Runtime version label: `Нумератор сделок - свои правила генерации v.4`
 - Current versioned zip: `dist app B24 zip/Numberer B24 v.4.zip`
 
 ## Current State
