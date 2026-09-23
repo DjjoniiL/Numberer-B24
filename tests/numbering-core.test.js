@@ -17,9 +17,9 @@ test("builds sequential number with manual prefix", () => {
     generationMode: "sequential",
   });
   const first = core.buildNumber(settings, {}, {}, 0);
-  assert.equal(first.value, "CRM_AAA000");
+  assert.equal(first.value, "CRM_AAA001");
   const second = core.buildNumber(settings, {}, { [first.key]: first.nextSequence }, 0);
-  assert.equal(second.value, "CRM_AAA001");
+  assert.equal(second.value, "CRM_AAA002");
 });
 
 test("uses string field as prefix source", () => {
@@ -30,7 +30,7 @@ test("uses string field as prefix source", () => {
     letterLength: 4,
   });
   const result = core.buildNumber(settings, { UF_CRM_PREFIX: "ACME " }, {}, 0);
-  assert.equal(result.value, "ACME_AAAA0000");
+  assert.equal(result.value, "ACME_AAAA0001");
 });
 
 test("reads Bitrix custom fields by original and camel aliases", () => {
@@ -44,7 +44,7 @@ test("reads Bitrix custom fields by original and camel aliases", () => {
     letterLength: 3,
   });
   const deal = { ufCrm1789543990987: "LTE", categoryId: 0, stageId: "EXECUTING" };
-  assert.equal(core.buildNumber(settings, deal, {}, 0).value, "LTE_AAA00000");
+  assert.equal(core.buildNumber(settings, deal, {}, 0).value, "LTE_AAA00001");
 });
 
 test("uses custom start number and derives number shape", () => {
@@ -62,6 +62,61 @@ test("uses custom start number and derives number shape", () => {
   assert.equal(first.value, "NUM_AAA123456");
   const second = core.buildNumber(settings, {}, { [first.key]: first.nextSequence }, 0);
   assert.equal(second.value, "NUM_AAA123457");
+});
+
+test("uses original default shape and starts from 0001", () => {
+  const settings = core.normalizeSettings({
+    prefixMode: "manual",
+    manualPrefix: "NUM",
+  });
+  assert.equal(settings.letterLength, 2);
+  assert.equal(settings.digits, 4);
+  const first = core.buildNumber(settings, {}, {}, 0);
+  assert.equal(first.value, "NUM_AA0001");
+});
+
+test("accepts numeric-only custom start with default shape", () => {
+  const settings = core.normalizeSettings({
+    prefixMode: "manual",
+    manualPrefix: "NUM",
+    customStartEnabled: true,
+    customStartValue: "1",
+  });
+  assert.equal(settings.customStartValue, "AA0001");
+  assert.equal(settings.letterLength, 2);
+  assert.equal(settings.digits, 4);
+  assert.equal(core.customStartSequence(settings), 1);
+  assert.equal(core.buildNumber(settings, {}, {}, 0).value, "NUM_AA0001");
+});
+
+test("pads numeric-only custom start and clamps zero to 00001", () => {
+  const padded = core.normalizeSettings({
+    manualPrefix: "NUM",
+    customStartEnabled: true,
+    customStartValue: "42",
+  });
+  assert.equal(padded.customStartValue, "AA0042");
+  assert.equal(core.buildNumber(padded, {}, {}, 0).value, "NUM_AA0042");
+
+  const zero = core.normalizeSettings({
+    manualPrefix: "NUM",
+    customStartEnabled: true,
+    customStartValue: "0",
+  });
+  assert.equal(zero.customStartValue, "AA0001");
+  assert.equal(core.buildNumber(zero, {}, {}, 0).value, "NUM_AA0001");
+});
+
+test("falls back to default start when custom start shape is unsupported", () => {
+  const settings = core.normalizeSettings({
+    manualPrefix: "NUM",
+    customStartEnabled: true,
+    customStartValue: "1234567",
+  });
+  assert.equal(settings.customStartValue, "1234567");
+  assert.equal(settings.letterLength, 2);
+  assert.equal(settings.digits, 4);
+  assert.equal(core.buildNumber(settings, {}, {}, 0).value, "NUM_AA0001");
 });
 
 test("accepts separator inside custom start value", () => {
@@ -97,7 +152,7 @@ test("does not duplicate a prefix separator", () => {
     letterLength: 3,
   });
   const result = core.buildNumber(settings, {}, {}, 0);
-  assert.equal(result.value, "LTE_AAA0000");
+  assert.equal(result.value, "LTE_AAA0001");
 });
 
 test("explains capacities", () => {

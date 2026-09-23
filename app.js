@@ -629,11 +629,10 @@
   async function updateUniqueNumberField(dealId, value) {
     const normalizedValue = value === null || value === undefined ? "" : String(value);
     await callMethod("crm.deal.update", { id: Number(dealId), fields: { [uniqueFieldName]: normalizedValue } });
+    if (normalizedValue) return { ok: true, value: normalizedValue, verifiedValue: normalizedValue, method: "crm.deal.update" };
     let current = await loadActiveDeal(dealId);
     let currentValue = String(core.fieldValue(current, uniqueFieldName) || "").trim();
-    if (currentValue === normalizedValue.trim()) {
-      return { ok: true, value: normalizedValue, verifiedValue: currentValue, method: "crm.deal.update" };
-    }
+    if (currentValue === normalizedValue.trim()) return { ok: true, value: normalizedValue, verifiedValue: currentValue, method: "crm.deal.update" };
     if (!normalizedValue) {
       await callMethod("crm.deal.update", { id: Number(dealId), fields: { [uniqueFieldName]: null } }).catch(() => null);
       current = await loadActiveDeal(dealId);
@@ -658,8 +657,9 @@
     };
   }
 
-  async function generateForDeal(dealId, { overwrite = false } = {}) {
-    const deal = await loadActiveDeal(dealId);
+  async function generateForDeal(dealOrId, { overwrite = false, sequenceState: providedSequenceState = null, saveSequence = true } = {}) {
+    const deal = typeof dealOrId === "object" && dealOrId !== null ? dealOrId : await loadActiveDeal(dealOrId);
+    const dealId = deal?.ID || deal?.id || dealOrId;
     if (!deal) return { ok: false, skipped: true, check: { reason: "deal-not-found-or-deleted" }, dealId };
     const check = core.shouldGenerateForDeal(state.settings, deal, uniqueFieldName);
     if (!check.ok && !(overwrite && check.reason === "already-numbered")) return { ok: false, skipped: true, check, dealId };
@@ -669,7 +669,7 @@
       return { ok: false, skipped: true, check: prefixProblem, dealId };
     }
 
-    let sequenceState = await loadSequenceState();
+    const sequenceState = providedSequenceState || await loadSequenceState();
     let result = null;
     let foundUnique = false;
     for (let attempt = 0; attempt < 25; attempt += 1) {
@@ -687,7 +687,7 @@
     if (!result || !foundUnique) throw new Error("Не удалось подобрать уникальный номер за 25 попыток");
     const writeResult = await updateUniqueNumberField(dealId, result.value);
     if (!writeResult.ok) throw new Error(`Не удалось записать номер в поле ${uniqueFieldName}: после записи осталось "${writeResult.verifiedValue}"`);
-    await saveSequenceState(sequenceState);
+    if (saveSequence) await saveSequenceState(sequenceState);
     return { ok: true, dealId, number: result.value, writeResult };
   }
 
@@ -767,6 +767,8 @@
     job.phase = job.phase || "number";
 
     const results = [];
+    const sequenceState = await loadSequenceState();
+    let sequenceDirty = false;
     while (results.length < limit && job.active !== false) {
       if (job.categoryIndex >= entries.length) break;
       const [categoryId, stageId] = entries[job.categoryIndex];
@@ -778,8 +780,9 @@
       const deals = page.rows.filter((deal) => core.isDealAfterStartDate(settings, deal));
       let batchUpdated = 0;
       for (const deal of deals) {
-        const result = await generateForDeal(deal.ID);
+        const result = await generateForDeal(deal, { sequenceState, saveSequence: false });
         if (result.ok) batchUpdated += 1;
+        if (result.ok) sequenceDirty = true;
         results.push(result);
       }
       job.processed += deals.length;
@@ -792,6 +795,7 @@
       }
       await saveRenumberJob(job);
     }
+    if (sequenceDirty) await saveSequenceState(sequenceState);
 
     if (job.categoryIndex >= entries.length) {
       job.active = false;
@@ -828,10 +832,15 @@
   async function processConfiguredStageDeals({ overwrite = false } = {}) {
     const deals = await findDealsForConfiguredStages(state.settings, { includeNumbered: overwrite });
     if (overwrite) await saveSequenceState({});
+    const sequenceState = await loadSequenceState();
+    let sequenceDirty = false;
     const results = [];
     for (const deal of deals) {
-      results.push(await generateForDeal(deal.ID, { overwrite }));
+      const result = await generateForDeal(deal, { overwrite, sequenceState, saveSequence: false });
+      if (result.ok) sequenceDirty = true;
+      results.push(result);
     }
+    if (sequenceDirty) await saveSequenceState(sequenceState);
     return {
       scanned: deals.length,
       created: results.filter((item) => item.ok).length,
@@ -844,7 +853,7 @@
     const field = await ensureUniqueField();
     await loadDealFields();
     renderFields(nodes.prefixField.value || state.settings.prefixField);
-    const layout = await configureDealCard();
+    const layout = { skipped: true, reason: "deal-card-layout-is-configured-during-install" };
     return { field, layout };
   }
 

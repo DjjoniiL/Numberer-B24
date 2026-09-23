@@ -13,11 +13,6 @@ if (-not $OutputPath) {
 }
 
 New-Item -ItemType Directory -Force -Path $DistDir | Out-Null
-if (Test-Path -LiteralPath $OutputPath) {
-  $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
-  $OutputPath = Join-Path $DistDir "$ProductName v.$AppVersion $stamp.zip"
-}
-
 $runtimeFiles = @(
   "install.html",
   "install.js",
@@ -35,10 +30,7 @@ if ($missing.Count -gt 0) {
   throw "Missing runtime files: $($missing -join ', ')"
 }
 
-$tempDir = Join-Path $DistDir "marketplace-runtime"
-if (Test-Path -LiteralPath $tempDir) {
-  Remove-Item -LiteralPath $tempDir -Recurse -Force
-}
+$tempDir = Join-Path ([IO.Path]::GetTempPath()) ("numberer-b24-marketplace-runtime-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
 
 foreach ($file in $runtimeFiles) {
@@ -46,6 +38,10 @@ foreach ($file in $runtimeFiles) {
 }
 
 Compress-Archive -Path (Join-Path $tempDir "*") -DestinationPath $OutputPath -Force
-Remove-Item -LiteralPath $tempDir -Recurse -Force
+try {
+  Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction Stop
+} catch {
+  Write-Warning "Marketplace zip was created, but temporary directory cleanup failed: $($_.Exception.Message)"
+}
 
 Write-Host "Marketplace zip created: $OutputPath"

@@ -229,6 +229,10 @@
     }
   }
 
+  async function unbindPlacement(placement) {
+    return callMethod("placement.unbind", { PLACEMENT: placement }).catch((error) => ({ ok: false, error: error.message }));
+  }
+
   async function install() {
     setStatus("Создаю поле сделки...");
     const field = await ensureUniqueField();
@@ -243,14 +247,13 @@
     write({ step: "deal-card-layout", layout });
 
     setStatus("Регистрирую интерфейсы приложения...");
-    const appHandler = fileUrl("index.html");
     const workerHandler = fileUrl("worker.html");
     const workerErrorHandler = fileUrl("worker-error.html");
+    const removedDealTab = await unbindPlacement("CRM_DEAL_DETAIL_TAB");
     const placements = [
-      await bindPlacement("CRM_DEAL_DETAIL_TAB", { HANDLER: appHandler, TITLE: "Нумератор" }),
       await bindPlacement("PAGE_BACKGROUND_WORKER", { HANDLER: workerHandler, OPTIONS: { errorHandlerUrl: workerErrorHandler } }),
     ];
-    write({ step: "placements", placements, appHandler, workerHandler });
+    write({ step: "placements", placements, removedDealTab, workerHandler });
 
     const defaultSettings = await ensureInitialSettings(categories);
     write({ step: "default-settings", defaultSettings });

@@ -8,7 +8,7 @@
   const prefixMissingCommentsOption = "numbererB24PrefixMissingComments";
   const uniqueFieldName = "UF_CRM_UNIQUE_NUMBER";
   const core = window.NumbererCore;
-  const pollMs = 15000;
+  const pollMs = 5000;
 
   let settings = core.normalizeSettings();
   let busy = false;
@@ -137,11 +137,10 @@
   async function updateUniqueNumberField(dealId, value) {
     const normalizedValue = value === null || value === undefined ? "" : String(value);
     await callMethod("crm.deal.update", { id: Number(dealId), fields: { [uniqueFieldName]: normalizedValue } });
+    if (normalizedValue) return { ok: true, value: normalizedValue, verifiedValue: normalizedValue, method: "crm.deal.update" };
     let current = await loadActiveDeal(dealId);
     let currentValue = String(core.fieldValue(current, uniqueFieldName) || "").trim();
-    if (currentValue === normalizedValue.trim()) {
-      return { ok: true, value: normalizedValue, verifiedValue: currentValue, method: "crm.deal.update" };
-    }
+    if (currentValue === normalizedValue.trim()) return { ok: true, value: normalizedValue, verifiedValue: currentValue, method: "crm.deal.update" };
     if (!normalizedValue) {
       await callMethod("crm.deal.update", { id: Number(dealId), fields: { [uniqueFieldName]: null } }).catch(() => null);
       current = await loadActiveDeal(dealId);
@@ -166,8 +165,9 @@
     };
   }
 
-  async function generateForDeal(dealId, { overwrite = false } = {}) {
-    const deal = await loadActiveDeal(dealId);
+  async function generateForDeal(dealOrId, { overwrite = false, sequenceState: providedSequenceState = null, saveSequence = true } = {}) {
+    const deal = typeof dealOrId === "object" && dealOrId !== null ? dealOrId : await loadActiveDeal(dealOrId);
+    const dealId = deal?.ID || deal?.id || dealOrId;
     if (!deal) return { ok: false, skipped: true, check: { reason: "deal-not-found-or-deleted" }, dealId };
     const check = core.shouldGenerateForDeal(settings, deal, uniqueFieldName);
     if (!check.ok && !(overwrite && check.reason === "already-numbered")) return { ok: false, skipped: true, check, dealId };
@@ -177,7 +177,7 @@
       return { ok: false, skipped: true, check: prefixProblem, dealId };
     }
 
-    let sequenceState = await loadSequenceState();
+    const sequenceState = providedSequenceState || await loadSequenceState();
     let result = null;
     let foundUnique = false;
     for (let attempt = 0; attempt < 25; attempt += 1) {
@@ -193,7 +193,7 @@
     if (!result || !foundUnique) throw new Error("Не удалось подобрать уникальный номер");
     const writeResult = await updateUniqueNumberField(dealId, result.value);
     if (!writeResult.ok) throw new Error(`Не удалось записать номер в поле ${uniqueFieldName}: после записи осталось "${writeResult.verifiedValue}"`);
-    await saveSequenceState(sequenceState);
+    if (saveSequence) await saveSequenceState(sequenceState);
     return { ok: true, dealId, number: result.value, writeResult };
   }
 
@@ -260,6 +260,8 @@
     job.phase = job.phase || "number";
 
     const results = [];
+    const sequenceState = await loadSequenceState();
+    let sequenceDirty = false;
     while (results.length < limit && job.active !== false) {
       if (job.categoryIndex >= entries.length) break;
       const [categoryId, stageId] = entries[job.categoryIndex];
@@ -271,8 +273,9 @@
       const deals = page.rows.filter((deal) => core.isDealAfterStartDate(settings, deal));
       let batchUpdated = 0;
       for (const deal of deals) {
-        const result = await generateForDeal(deal.ID);
+        const result = await generateForDeal(deal, { sequenceState, saveSequence: false });
         if (result.ok) batchUpdated += 1;
+        if (result.ok) sequenceDirty = true;
         results.push(result);
       }
       job.processed += deals.length;
@@ -285,6 +288,7 @@
       }
       await saveRenumberJob(job);
     }
+    if (sequenceDirty) await saveSequenceState(sequenceState);
 
     if (job.categoryIndex >= entries.length) {
       job.active = false;
@@ -321,10 +325,15 @@
   async function processConfiguredStageDeals() {
     const deals = await findDealsForConfiguredStages();
     const limitedDeals = deals.slice(0, 20);
+    const sequenceState = await loadSequenceState();
+    let sequenceDirty = false;
     const results = [];
     for (const deal of limitedDeals) {
-      results.push(await generateForDeal(deal.ID));
+      const result = await generateForDeal(deal, { sequenceState, saveSequence: false });
+      if (result.ok) sequenceDirty = true;
+      results.push(result);
     }
+    if (sequenceDirty) await saveSequenceState(sequenceState);
     return {
       scanned: deals.length,
       processed: limitedDeals.length,

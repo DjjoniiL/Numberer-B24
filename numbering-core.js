@@ -10,13 +10,16 @@
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   const digitOptions = [3, 4, 5, 6];
   const letterOptions = [2, 3, 4, 5];
+  const defaultLetterLength = 2;
+  const defaultDigits = 4;
+  const defaultStartSequence = 1;
 
   const defaultSettings = {
     prefixMode: "manual",
     prefixField: "",
     manualPrefix: "NUM",
-    digits: 4,
-    letterLength: 2,
+    digits: defaultDigits,
+    letterLength: defaultLetterLength,
     generationMode: "sequential",
     customStartEnabled: false,
     customStartValue: "",
@@ -36,8 +39,9 @@
   function normalizeSettings(settings) {
     const source = settings && typeof settings === "object" ? settings : {};
     const customStartEnabled = source.customStartEnabled === true || source.customStartEnabled === "on" || source.customStartEnabled === "true";
-    const customStartValue = normalizeStartNumberValue(source.customStartValue);
-    const customStartPattern = customStartEnabled ? parseStartNumberPattern(customStartValue) : null;
+    const rawCustomStartValue = normalizeStartNumberValue(source.customStartValue);
+    const customStartPattern = customStartEnabled ? parseStartNumberPattern(rawCustomStartValue) : null;
+    const customStartValue = customStartPattern?.value || rawCustomStartValue;
     const digits = customStartPattern?.digits || (digitOptions.includes(Number(source.digits)) ? Number(source.digits) : defaultSettings.digits);
     const letterLength = customStartPattern?.letterLength || (letterOptions.includes(Number(source.letterLength)) ? Number(source.letterLength) : defaultSettings.letterLength);
     return {
@@ -132,13 +136,18 @@
 
   function parseStartNumberPattern(value) {
     const normalized = normalizeStartNumberValue(value);
-    const match = normalized.match(/^([A-Z]+)(\d+)$/);
+    const numericOnly = normalized.match(/^\d+$/);
+    const numericStart = numericOnly && Number(normalized) < defaultStartSequence ? String(defaultStartSequence) : normalized;
+    const valueWithLetters = numericOnly
+      ? `${"A".repeat(defaultLetterLength)}${numericStart.padStart(defaultDigits, "0")}`
+      : normalized;
+    const match = valueWithLetters.match(/^([A-Z]+)(\d+)$/);
     if (!match) return null;
     const letterLength = match[1].length;
     const digits = match[2].length;
     if (!letterOptions.includes(letterLength) || !digitOptions.includes(digits)) return null;
     return {
-      value: normalized,
+      value: valueWithLetters,
       letters: match[1],
       number: match[2],
       letterLength,
@@ -148,11 +157,11 @@
 
   function customStartSequence(settings) {
     const normalized = normalizeSettings({ ...settings, customStartEnabled: false });
-    if (!settings?.customStartEnabled) return 0;
+    if (!settings?.customStartEnabled) return defaultStartSequence;
     const pattern = parseStartNumberPattern(settings.customStartValue);
-    if (!pattern) return 0;
+    if (!pattern) return defaultStartSequence;
     const letterIndex = lettersToIndex(pattern.letters);
-    if (letterIndex === null) return 0;
+    if (letterIndex === null) return defaultStartSequence;
     const sequence = letterIndex * numberCapacity(normalized.digits) + Number(pattern.number);
     const capacity = pow26(normalized.letterLength) * numberCapacity(normalized.digits);
     return sequence % capacity;
