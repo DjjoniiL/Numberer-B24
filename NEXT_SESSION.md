@@ -4,14 +4,14 @@
 
 - Path: `G:\AI Project B24\Numberer B24`
 - App: `Нумератор сделок - свои правила генерации`
-- Runtime version label: `Нумератор сделок - свои правила генерации v.4`
-- Current versioned zip: `dist app B24 zip/Numberer B24 v.4.zip`
+- Runtime version label: `Нумератор сделок - свои правила генерации v.5`
+- Current versioned zip: `dist app B24 zip/Numberer B24 v.5.zip`
 
 ## Current State
 
 The app is a static Bitrix24 Marketplace app. It creates and fills `UF_CRM_UNIQUE_NUMBER` in deals according to admin settings.
 
-Version `v.4` is the final naming of the tested `v.3.18` behavior.
+Version `v.5` excludes all-zero numeric parts in every numbering mode.
 
 Implemented:
 
@@ -39,7 +39,7 @@ Implemented:
 - Runtime zip must contain only browser runtime files.
 - Do not commit generated Marketplace zip archives by default.
 - Only one, maximum two, final/release zip archives may be committed/pushed, and only after the user explicitly approves pushing the zip.
-- User explicitly approved pushing `Numberer B24 v.4.zip`.
+- User explicitly approved pushing the final v.5 zip.
 - Do not push unless the user explicitly asks.
 
 ## Checks
@@ -64,4 +64,4 @@ User tested version `v.3.18` successfully:
 - logging journal works;
 - settings persist after refresh.
 
-Version `v.4` should be treated as the final release label for that verified behavior.
+Version `v.5` should be treated as the current release label.

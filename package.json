@@ -1,6 +1,6 @@
 {
   "name": "numberer-b24",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "description": "Bitrix24 Marketplace app for assigning unique deal numbers.",
   "type": "commonjs",
   "scripts": {

@@ -101,6 +101,26 @@
     return Math.pow(10, Number(digits) || 0);
   }
 
+  function sequenceCapacity(digits, letterLength) {
+    return pow26(letterLength) * numberCapacity(digits);
+  }
+
+  function normalizeSequenceValue(value, digits, letterLength) {
+    const numericCapacity = numberCapacity(digits);
+    const capacity = sequenceCapacity(digits, letterLength);
+    let sequence = ((Number(value) || 0) % capacity + capacity) % capacity;
+    if (sequence < defaultStartSequence) sequence = defaultStartSequence;
+    if (sequence % numericCapacity === 0) {
+      sequence = (sequence + 1) % capacity;
+      if (sequence < defaultStartSequence) sequence = defaultStartSequence;
+    }
+    return sequence;
+  }
+
+  function nextSequenceValue(value, digits, letterLength) {
+    return normalizeSequenceValue(Number(value || 0) + 1, digits, letterLength);
+  }
+
   function formatNumber(value, digits) {
     const size = numberCapacity(digits);
     const normalized = ((Number(value) || 0) % size + size) % size;
@@ -146,10 +166,11 @@
     const letterLength = match[1].length;
     const digits = match[2].length;
     if (!letterOptions.includes(letterLength) || !digitOptions.includes(digits)) return null;
+    const number = String(Math.max(defaultStartSequence, Number(match[2]) || 0)).padStart(digits, "0");
     return {
-      value: valueWithLetters,
+      value: `${match[1]}${number}`,
       letters: match[1],
-      number: match[2],
+      number,
       letterLength,
       digits,
     };
@@ -163,8 +184,7 @@
     const letterIndex = lettersToIndex(pattern.letters);
     if (letterIndex === null) return defaultStartSequence;
     const sequence = letterIndex * numberCapacity(normalized.digits) + Number(pattern.number);
-    const capacity = pow26(normalized.letterLength) * numberCapacity(normalized.digits);
-    return sequence % capacity;
+    return normalizeSequenceValue(sequence, normalized.digits, normalized.letterLength);
   }
 
   function randomInt(max) {
@@ -192,20 +212,20 @@
     const state = sequenceState && typeof sequenceState === "object" ? sequenceState : {};
     const letterCapacity = pow26(normalized.letterLength);
     const numericCapacity = numberCapacity(normalized.digits);
-    const sequenceCapacity = letterCapacity * numericCapacity;
+    const rawSequenceCapacity = sequenceCapacity(normalized.digits, normalized.letterLength);
     const configuredStart = customStartSequence(normalized);
-    const current = state[key] === undefined || state[key] === null ? configuredStart : Number(state[key] || 0);
+    const current = normalizeSequenceValue(state[key] === undefined || state[key] === null ? configuredStart : state[key], normalized.digits, normalized.letterLength);
 
     let letters;
     let number;
     let nextSequence = current;
     if (normalized.generationMode === "random") {
       letters = randomLetters(normalized.letterLength);
-      number = formatNumber(randomInt(numericCapacity), normalized.digits);
+      number = formatNumber(randomInt(numericCapacity - 1) + 1, normalized.digits);
     } else {
       letters = lettersFromIndex(Math.floor(current / numericCapacity), normalized.letterLength);
       number = formatNumber(current % numericCapacity, normalized.digits);
-      nextSequence = (current + 1) % sequenceCapacity;
+      nextSequence = nextSequenceValue(current, normalized.digits, normalized.letterLength);
     }
 
     const separator = prefix && !/[_-]$/.test(prefix) ? "_" : "";
@@ -216,7 +236,7 @@
       number,
       key,
       nextSequence,
-      capacity: sequenceCapacity,
+      capacity: rawSequenceCapacity - letterCapacity,
     };
   }
 
@@ -234,13 +254,13 @@
 
   function helpText(digits, letterLength) {
     const letterCount = pow26(letterLength);
-    const digitCount = numberCapacity(digits);
+    const digitCount = numberCapacity(digits) - 1;
     const total = letterCount * digitCount;
     return {
       letterCount,
       digitCount,
       total,
-      text: `В латинском алфавите 26 букв. Формат ${"A".repeat(letterLength)} дает 26^${letterLength} = ${letterCount.toLocaleString("ru-RU")} буквенных вариантов. Формат из ${digits} цифр дает ${digitCount.toLocaleString("ru-RU")} числовых вариантов от ${"0".repeat(digits)} до ${"9".repeat(digits)}. Вместе это до ${total.toLocaleString("ru-RU")} комбинаций на один префикс.`,
+      text: `В латинском алфавите 26 букв. Формат ${"A".repeat(letterLength)} дает 26^${letterLength} = ${letterCount.toLocaleString("ru-RU")} буквенных вариантов. Формат из ${digits} цифр дает ${digitCount.toLocaleString("ru-RU")} числовых вариантов от ${String(1).padStart(digits, "0")} до ${"9".repeat(digits)}. Вместе это до ${total.toLocaleString("ru-RU")} комбинаций на один префикс.`,
     };
   }
 
@@ -291,6 +311,7 @@
     prefixFieldProblem,
     pow26,
     numberCapacity,
+    normalizeSequenceValue,
     formatNumber,
     lettersFromIndex,
     lettersToIndex,

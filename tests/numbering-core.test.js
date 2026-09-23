@@ -107,6 +107,55 @@ test("pads numeric-only custom start and clamps zero to 00001", () => {
   assert.equal(core.buildNumber(zero, {}, {}, 0).value, "NUM_AA0001");
 });
 
+test("skips all-zero numbers when sequential numbering rolls over", () => {
+  const settings = core.normalizeSettings({
+    prefixMode: "manual",
+    manualPrefix: "CRM",
+    digits: 4,
+    letterLength: 2,
+    generationMode: "sequential",
+  });
+  const key = core.sequenceKey(settings, 0);
+  const lastInBlock = core.buildNumber(settings, {}, { [key]: 9999 }, 0);
+  assert.equal(lastInBlock.value, "CRM_AA9999");
+  assert.equal(lastInBlock.nextSequence, 10001);
+
+  const nextBlock = core.buildNumber(settings, {}, { [key]: lastInBlock.nextSequence }, 0);
+  assert.equal(nextBlock.value, "CRM_AB0001");
+});
+
+test("repairs legacy sequence state that points to an all-zero number", () => {
+  const settings = core.normalizeSettings({
+    prefixMode: "manual",
+    manualPrefix: "CRM",
+    digits: 4,
+    letterLength: 2,
+  });
+  const key = core.sequenceKey(settings, 0);
+  const repaired = core.buildNumber(settings, {}, { [key]: 10000 }, 0);
+  assert.equal(repaired.value, "CRM_AB0001");
+  assert.equal(repaired.number, "0001");
+});
+
+test("random mode never returns an all-zero numeric part", () => {
+  const originalRandom = Math.random;
+  Math.random = () => 0;
+  try {
+    const settings = core.normalizeSettings({
+      prefixMode: "manual",
+      manualPrefix: "CRM",
+      digits: 4,
+      letterLength: 2,
+      generationMode: "random",
+    });
+    const result = core.buildNumber(settings, {}, {}, 0);
+    assert.equal(result.value, "CRM_AA0001");
+    assert.equal(result.number, "0001");
+  } finally {
+    Math.random = originalRandom;
+  }
+});
+
 test("falls back to default start when custom start shape is unsupported", () => {
   const settings = core.normalizeSettings({
     manualPrefix: "NUM",
@@ -131,6 +180,17 @@ test("accepts separator inside custom start value", () => {
   assert.equal(settings.digits, 6);
   const first = core.buildNumber(settings, { UF_CRM_PREFIX: "LTE" }, {}, 0);
   assert.equal(first.value, "LTE_FSA008791");
+});
+
+test("custom start with all-zero numeric part is normalized to one", () => {
+  const settings = core.normalizeSettings({
+    prefixMode: "manual",
+    manualPrefix: "NUM",
+    customStartEnabled: true,
+    customStartValue: "AB0000",
+  });
+  assert.equal(settings.customStartValue, "AB0001");
+  assert.equal(core.buildNumber(settings, {}, {}, 0).value, "NUM_AB0001");
 });
 
 test("detects empty selected prefix field", () => {
@@ -158,8 +218,9 @@ test("does not duplicate a prefix separator", () => {
 test("explains capacities", () => {
   const info = core.helpText(3, 4);
   assert.equal(info.letterCount, 456976);
-  assert.equal(info.digitCount, 1000);
+  assert.equal(info.digitCount, 999);
   assert.match(info.text, /26\^4/);
+  assert.match(info.text, /001/);
 });
 
 test("checks configured target stage and existing number", () => {
