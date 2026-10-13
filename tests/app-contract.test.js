@@ -15,9 +15,9 @@ test("install removes the deal detail tab and does not bind it again", () => {
   assert.doesNotMatch(installSource, /\bbindPlacement\("CRM_DEAL_DETAIL_TAB"/);
 });
 
-test("worker uses a short polling interval for faster deal updates", () => {
+test("worker uses a fast polling interval for stage updates", () => {
   const workerSource = readRuntimeFile("worker.js");
-  assert.match(workerSource, /const pollMs = 5000;/);
+  assert.match(workerSource, /const pollMs = 1500;/);
 });
 
 test("uses full app name for the page title and short menu title in the UI", () => {

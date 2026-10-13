@@ -34,6 +34,7 @@
             <select name="prefixMode" id="prefixMode">
               <option value="manual">Задать вручную</option>
               <option value="field">Взять из строкового поля сделки</option>
+              <option value="none">&#1041;&#1077;&#1079; &#1087;&#1088;&#1077;&#1092;&#1080;&#1082;&#1089;&#1072;</option>
             </select>
           </label>
 
@@ -47,6 +48,15 @@
             <select name="prefixField" id="prefixField"></select>
           </label>
 
+          <fieldset class="choice-group" id="prefixSeparatorWrap">
+            <legend>&#1056;&#1072;&#1079;&#1076;&#1077;&#1083;&#1080;&#1090;&#1077;&#1083;&#1100; &#1087;&#1086;&#1089;&#1083;&#1077; &#1087;&#1088;&#1077;&#1092;&#1080;&#1082;&#1089;&#1072;</legend>
+            <div class="segmented" id="prefixSeparatorChoices">
+              <label><input type="radio" name="prefixSeparator" value="_" checked><span>_</span></label>
+              <label><input type="radio" name="prefixSeparator" value="-"><span>-</span></label>
+              <label><input type="radio" name="prefixSeparator" value="none"><span>&#1041;&#1077;&#1079;</span></label>
+            </div>
+          </fieldset>
+
           <label class="field">
             <span>Дата начала выборки</span>
             <input type="date" name="startDate" id="startDate">
@@ -58,9 +68,26 @@
               <div class="segmented" id="digitsChoices"></div>
             </fieldset>
 
+            <fieldset class="choice-group mode-group">
+              <legend>&#1056;&#1077;&#1078;&#1080;&#1084; &#1089;&#1086;&#1079;&#1076;&#1072;&#1085;&#1080;&#1103; &#1085;&#1086;&#1084;&#1077;&#1088;&#1086;&#1074;</legend>
+              <div class="segmented">
+                <label><input type="radio" name="generationMode" value="sequential" checked><span>&#1055;&#1086;&#1089;&#1083;&#1077;&#1076;&#1086;&#1074;&#1072;&#1090;&#1077;&#1083;&#1100;&#1085;&#1099;&#1081;</span></label>
+                <label><input type="radio" name="generationMode" value="random"><span>&#1056;&#1072;&#1085;&#1076;&#1086;&#1084;&#1085;&#1099;&#1081;</span></label>
+              </div>
+            </fieldset>
+
             <fieldset class="choice-group">
               <legend>Буквенный префикс значения <button class="help-button" type="button" data-help="letters" title="Справка">?</button></legend>
               <div class="segmented" id="letterChoices"></div>
+            </fieldset>
+
+            <fieldset class="choice-group">
+              <legend>&#1041;&#1091;&#1082;&#1074;&#1077;&#1085;&#1085;&#1072;&#1103; &#1095;&#1072;&#1089;&#1090;&#1100;</legend>
+              <label class="switch-row">
+                <span id="useLettersStatus">&#1048;&#1089;&#1087;&#1086;&#1083;&#1100;&#1079;&#1086;&#1074;&#1072;&#1090;&#1100; &#1073;&#1091;&#1082;&#1074;&#1077;&#1085;&#1085;&#1091;&#1102; &#1095;&#1072;&#1089;&#1090;&#1100;</span>
+                <input type="checkbox" name="useLetters" id="useLetters" checked>
+                <span class="switch-control" aria-hidden="true"></span>
+              </label>
             </fieldset>
 
             <fieldset class="choice-group mode-group">
@@ -93,6 +120,15 @@
             </label>
           </section>
 
+          <section class="generation-settings">
+            <h3>&#1057;&#1095;&#1077;&#1090;&#1095;&#1080;&#1082; &#1087;&#1086; &#1074;&#1086;&#1088;&#1086;&#1085;&#1082;&#1072;&#1084;</h3>
+            <label class="switch-row">
+              <span id="sharedSequenceStatus">&#1054;&#1090;&#1076;&#1077;&#1083;&#1100;&#1085;&#1099;&#1077; &#1085;&#1086;&#1084;&#1077;&#1088;&#1072; &#1085;&#1072; &#1074;&#1086;&#1088;&#1086;&#1085;&#1082;&#1091;</span>
+              <input type="checkbox" name="sharedSequence" id="sharedSequence">
+              <span class="switch-control" aria-hidden="true"></span>
+            </label>
+          </section>
+
           <h3>Стадии запуска по воронкам</h3>
           <div id="stageMatrix" class="stage-matrix"></div>
           <div class="actions">
@@ -105,7 +141,7 @@
         <pre id="log" class="log"></pre>
       </section>
     </form>
-    <div id="appVersion" class="app-version">Нумератор сделок - свои правила генерации v.5</div>
+    <div id="appVersion" class="app-version">Нумератор сделок - свои правила генерации v.7.6</div>
   </main>
 
   <dialog id="helpModal">

@@ -1,14 +1,14 @@
 (function () {
   "use strict";
 
-  const appVersion = "Нумератор сделок worker v.5";
+  const appVersion = "Нумератор сделок worker v.7.6";
   const settingsOption = "numbererB24Settings";
   const sequenceOption = "numbererB24SequenceState";
   const renumberJobOption = "numbererB24RenumberJob";
   const prefixMissingCommentsOption = "numbererB24PrefixMissingComments";
   const uniqueFieldName = "UF_CRM_UNIQUE_NUMBER";
   const core = window.NumbererCore;
-  const pollMs = 5000;
+  const pollMs = 1500;
 
   let settings = core.normalizeSettings();
   let busy = false;
@@ -102,9 +102,9 @@
     await callMethod("app.option.set", { options: { [renumberJobOption]: JSON.stringify(job || {}) } });
   }
 
-  async function uniqueNumberExists(value, exceptDealId) {
+  async function uniqueNumberExists(value, exceptDealId, categoryId) {
     const rows = await callList("crm.deal.list", {
-      filter: { [`=${uniqueFieldName}`]: value },
+      filter: core.uniqueNumberFilter(settings, value, categoryId, uniqueFieldName),
       select: ["ID", uniqueFieldName],
     }).catch(() => []);
     return rows.some((deal) => Number(deal.ID) !== Number(exceptDealId));
@@ -183,7 +183,7 @@
     for (let attempt = 0; attempt < 25; attempt += 1) {
       result = core.buildNumber(settings, deal, sequenceState, core.dealCategoryId(deal));
       if (settings.generationMode === "sequential") sequenceState[result.key] = result.nextSequence;
-      const exists = await uniqueNumberExists(result.value, dealId);
+      const exists = await uniqueNumberExists(result.value, dealId, core.dealCategoryId(deal));
       if (!exists) {
         foundUnique = true;
         break;

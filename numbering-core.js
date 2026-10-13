@@ -18,9 +18,12 @@
     prefixMode: "manual",
     prefixField: "",
     manualPrefix: "NUM",
+    prefixSeparator: "_",
+    useLetters: true,
     digits: defaultDigits,
     letterLength: defaultLetterLength,
     generationMode: "sequential",
+    sharedSequence: false,
     customStartEnabled: false,
     customStartValue: "",
     startDate: "",
@@ -38,21 +41,25 @@
 
   function normalizeSettings(settings) {
     const source = settings && typeof settings === "object" ? settings : {};
+    const useLetters = source.useLetters === false || source.useLetters === "false" ? false : true;
     const customStartEnabled = source.customStartEnabled === true || source.customStartEnabled === "on" || source.customStartEnabled === "true";
-    const rawCustomStartValue = normalizeStartNumberValue(source.customStartValue);
-    const customStartPattern = customStartEnabled ? parseStartNumberPattern(rawCustomStartValue) : null;
+    const rawCustomStartValue = useLetters ? normalizeStartNumberValue(source.customStartValue) : normalizeNumericStartValue(source.customStartValue);
+    const customStartPattern = customStartEnabled ? (useLetters ? parseStartNumberPattern(rawCustomStartValue) : parseNumericStartPattern(rawCustomStartValue, source.digits)) : null;
     const customStartValue = customStartPattern?.value || rawCustomStartValue;
     const digits = customStartPattern?.digits || (digitOptions.includes(Number(source.digits)) ? Number(source.digits) : defaultSettings.digits);
-    const letterLength = customStartPattern?.letterLength || (letterOptions.includes(Number(source.letterLength)) ? Number(source.letterLength) : defaultSettings.letterLength);
+    const letterLength = useLetters ? (customStartPattern?.letterLength || (letterOptions.includes(Number(source.letterLength)) ? Number(source.letterLength) : defaultSettings.letterLength)) : 0;
     return {
       ...defaultSettings,
       ...source,
-      prefixMode: source.prefixMode === "field" ? "field" : "manual",
+      prefixMode: ["manual", "field", "none"].includes(source.prefixMode) ? source.prefixMode : "manual",
       prefixField: String(source.prefixField || ""),
       manualPrefix: String(source.manualPrefix || ""),
+      prefixSeparator: source.prefixSeparator === "-" ? "-" : (source.prefixSeparator === "" || source.prefixSeparator === "none" ? "" : "_"),
+      useLetters,
       digits,
       letterLength,
       generationMode: customStartEnabled ? "sequential" : (source.generationMode === "random" ? "random" : "sequential"),
+      sharedSequence: source.sharedSequence === true || source.sharedSequence === "on" || source.sharedSequence === "true",
       customStartEnabled,
       customStartValue,
       startDate: normalizeDateOnly(source.startDate),
@@ -154,6 +161,26 @@
     return String(value || "").trim().toUpperCase().replace(/[^0-9A-Z]/g, "");
   }
 
+  function normalizeNumericStartValue(value) {
+    return String(value || "").trim().replace(/\D/g, "");
+  }
+
+  function parseNumericStartPattern(value, configuredDigits) {
+    const normalized = normalizeNumericStartValue(value);
+    if (!normalized) return null;
+    const digits = digitOptions.includes(Number(configuredDigits))
+      ? Number(configuredDigits)
+      : (digitOptions.includes(normalized.length) ? normalized.length : defaultDigits);
+    const number = String(Math.max(defaultStartSequence, Number(normalized) || 0)).padStart(digits, "0");
+    return {
+      value: number,
+      letters: "",
+      number,
+      letterLength: 0,
+      digits,
+    };
+  }
+
   function parseStartNumberPattern(value) {
     const normalized = normalizeStartNumberValue(value);
     const numericOnly = normalized.match(/^\d+$/);
@@ -179,9 +206,11 @@
   function customStartSequence(settings) {
     const normalized = normalizeSettings({ ...settings, customStartEnabled: false });
     if (!settings?.customStartEnabled) return defaultStartSequence;
-    const pattern = parseStartNumberPattern(settings.customStartValue);
+    const pattern = normalized.useLetters
+      ? parseStartNumberPattern(settings.customStartValue)
+      : parseNumericStartPattern(settings.customStartValue, normalized.digits);
     if (!pattern) return defaultStartSequence;
-    const letterIndex = lettersToIndex(pattern.letters);
+    const letterIndex = normalized.useLetters ? lettersToIndex(pattern.letters) : 0;
     if (letterIndex === null) return defaultStartSequence;
     const sequence = letterIndex * numberCapacity(normalized.digits) + Number(pattern.number);
     return normalizeSequenceValue(sequence, normalized.digits, normalized.letterLength);
@@ -199,14 +228,23 @@
 
   function sequenceKey(settings, categoryId) {
     const normalized = normalizeSettings(settings);
-    const prefixKey = normalized.prefixMode === "field" ? `field:${normalized.prefixField}` : `manual:${cleanPrefix(normalized.manualPrefix)}`;
+    const scopeKey = normalized.sharedSequence ? "all" : String(categoryId ?? "0");
+    const prefixKey = normalized.prefixMode === "none"
+      ? "none"
+      : (normalized.prefixMode === "field" ? `field:${normalized.prefixField}` : `manual:${cleanPrefix(normalized.manualPrefix)}`);
+    const separatorKey = normalized.prefixSeparator || "none";
     const startKey = normalized.customStartEnabled ? `start:${normalized.customStartValue}` : "start:default";
-    return [String(categoryId ?? "0"), prefixKey, normalized.digits, normalized.letterLength, startKey].join("|");
+    if (!normalized.sharedSequence && normalized.prefixSeparator === "_") {
+      return [scopeKey, prefixKey, normalized.digits, normalized.letterLength, startKey].join("|");
+    }
+    return [scopeKey, prefixKey, separatorKey, normalized.digits, normalized.letterLength, startKey].join("|");
   }
 
   function buildNumber(settings, deal, sequenceState, categoryId) {
     const normalized = normalizeSettings(settings);
-    const prefixSource = normalized.prefixMode === "field" ? fieldValue(deal, normalized.prefixField) : normalized.manualPrefix;
+    const prefixSource = normalized.prefixMode === "none"
+      ? ""
+      : (normalized.prefixMode === "field" ? fieldValue(deal, normalized.prefixField) : normalized.manualPrefix);
     const prefix = cleanPrefix(prefixSource);
     const key = sequenceKey(normalized, categoryId);
     const state = sequenceState && typeof sequenceState === "object" ? sequenceState : {};
@@ -228,7 +266,7 @@
       nextSequence = nextSequenceValue(current, normalized.digits, normalized.letterLength);
     }
 
-    const separator = prefix && !/[_-]$/.test(prefix) ? "_" : "";
+    const separator = prefix && normalized.prefixSeparator && !/[_-]$/.test(prefix) ? normalized.prefixSeparator : "";
     return {
       value: `${prefix}${separator}${letters}${number}`,
       prefix,
@@ -253,6 +291,15 @@
   }
 
   function helpText(digits, letterLength) {
+    if (Number(letterLength) === 0) {
+      const digitCount = numberCapacity(digits) - 1;
+      return {
+        letterCount: 1,
+        digitCount,
+        total: digitCount,
+        text: `Буквенная часть выключена. Формат из ${digits} цифр дает ${digitCount.toLocaleString("ru-RU")} числовых вариантов от ${String(1).padStart(digits, "0")} до ${"9".repeat(digits)}.`,
+      };
+    }
     const letterCount = pow26(letterLength);
     const digitCount = numberCapacity(digits) - 1;
     const total = letterCount * digitCount;
@@ -262,6 +309,13 @@
       total,
       text: `В латинском алфавите 26 букв. Формат ${"A".repeat(letterLength)} дает 26^${letterLength} = ${letterCount.toLocaleString("ru-RU")} буквенных вариантов. Формат из ${digits} цифр дает ${digitCount.toLocaleString("ru-RU")} числовых вариантов от ${String(1).padStart(digits, "0")} до ${"9".repeat(digits)}. Вместе это до ${total.toLocaleString("ru-RU")} комбинаций на один префикс.`,
     };
+  }
+
+  function uniqueNumberFilter(settings, value, categoryId, uniqueField = "UF_CRM_UNIQUE_NUMBER") {
+    const normalized = normalizeSettings(settings);
+    const filter = { [`=${uniqueField}`]: value };
+    if (!normalized.sharedSequence) filter["=CATEGORY_ID"] = dealCategoryId({ CATEGORY_ID: categoryId });
+    return filter;
   }
 
   function dealCategoryId(deal) {
@@ -316,7 +370,9 @@
     lettersFromIndex,
     lettersToIndex,
     normalizeStartNumberValue,
+    normalizeNumericStartValue,
     parseStartNumberPattern,
+    parseNumericStartPattern,
     customStartSequence,
     randomLetters,
     sequenceKey,
@@ -326,5 +382,6 @@
     dealCreatedAt,
     isDealAfterStartDate,
     shouldGenerateForDeal,
+    uniqueNumberFilter,
   };
 });

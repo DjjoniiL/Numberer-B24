@@ -258,12 +258,40 @@ legend {
   align-items: start;
 }
 
-.number-options .choice-group:first-child {
+.number-options .choice-group:first-child .segmented {
+  flex-wrap: nowrap;
+}
+
+.number-options .choice-group:has(#letterChoices) {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-row: 3;
+  grid-template-columns: minmax(0, 0.52fr) minmax(250px, 0.48fr);
+  gap: 8px 16px;
+}
+
+.number-options .choice-group:has(#letterChoices) legend {
   grid-column: 1 / -1;
 }
 
-.number-options .choice-group:first-child .segmented {
-  flex-wrap: nowrap;
+.number-options .choice-group:has(#useLetters) {
+  grid-column: 1;
+  grid-row: 3;
+  align-self: end;
+  margin-top: 30px;
+}
+
+.number-options .choice-group:has(#useLetters) legend {
+  display: none;
+}
+
+.number-options .mode-group:not(:last-child) {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.number-options .mode-group:last-child {
+  display: none;
 }
 
 .mode-group {
@@ -292,6 +320,12 @@ legend {
 .switch-row > span:first-child {
   font-weight: 700;
   font-size: 13px;
+}
+
+.number-options .choice-group:has(#useLetters) .switch-row {
+  justify-content: flex-start;
+  width: max-content;
+  max-width: 100%;
 }
 
 .switch-row input {
@@ -340,9 +374,17 @@ legend {
   line-height: 1.35;
 }
 
-.mode-group .segmented,
-#letterChoices {
+.mode-group .segmented {
   flex-wrap: nowrap;
+}
+
+#letterChoices {
+  grid-column: 2;
+  flex-wrap: nowrap;
+}
+
+#letterChoices[hidden] {
+  display: none;
 }
 
 #letterChoices label {

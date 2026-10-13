@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const appVersion = "Нумератор сделок - свои правила генерации v.5";
+  const appVersion = "Нумератор сделок - свои правила генерации v.7.6";
   const settingsOption = "numbererB24Settings";
   const sequenceOption = "numbererB24SequenceState";
   const renumberJobOption = "numbererB24RenumberJob";
@@ -32,12 +32,17 @@
     appShell: document.querySelector(".app-shell"),
     manualPrefixWrap: document.querySelector("#manualPrefixWrap"),
     prefixFieldWrap: document.querySelector("#prefixFieldWrap"),
+    prefixSeparatorWrap: document.querySelector("#prefixSeparatorWrap"),
     prefixField: document.querySelector("#prefixField"),
     manualPrefix: document.querySelector("#manualPrefix"),
+    sharedSequence: document.querySelector("#sharedSequence"),
+    sharedSequenceStatus: document.querySelector("#sharedSequenceStatus"),
     customStartEnabled: document.querySelector("#customStartEnabled"),
     customStartStatus: document.querySelector("#customStartStatus"),
     customStartWrap: document.querySelector("#customStartWrap"),
     customStartValue: document.querySelector("#customStartValue"),
+    useLetters: document.querySelector("#useLetters"),
+    useLettersStatus: document.querySelector("#useLettersStatus"),
     startDate: document.querySelector("#startDate"),
     digitsChoices: document.querySelector("#digitsChoices"),
     letterChoices: document.querySelector("#letterChoices"),
@@ -471,9 +476,12 @@
   }
 
   function renderPrefixFields() {
-    const useField = nodes.prefixMode.value === "field";
-    nodes.manualPrefixWrap.hidden = useField;
+    const mode = nodes.prefixMode.value;
+    const useField = mode === "field";
+    const usePrefix = mode !== "none";
+    nodes.manualPrefixWrap.hidden = mode !== "manual";
     nodes.prefixFieldWrap.hidden = !useField;
+    nodes.prefixSeparatorWrap.hidden = !usePrefix;
   }
 
   function setRadioValue(name, value) {
@@ -488,12 +496,25 @@
     nodes.customStartValue.disabled = !enabled || !state.isAdmin;
   }
 
+  function syncSharedSequenceControls() {
+    const enabled = nodes.sharedSequence.checked;
+    nodes.sharedSequenceStatus.textContent = enabled ? "Общий счетчик для всех воронок" : "Отдельные номера на воронку";
+  }
+
+  function syncLetterControls() {
+    const enabled = nodes.useLetters.checked;
+    nodes.useLettersStatus.textContent = enabled ? "Использовать буквенную часть" : "Буквенных значений нет";
+    nodes.letterChoices.hidden = !enabled;
+  }
+
   function syncNumberOptionsFromCustomStart() {
     if (!nodes.customStartEnabled.checked) return;
-    const pattern = core.parseStartNumberPattern(nodes.customStartValue.value);
+    const pattern = nodes.useLetters.checked
+      ? core.parseStartNumberPattern(nodes.customStartValue.value)
+      : core.parseNumericStartPattern(nodes.customStartValue.value, nodes.form.elements.digits.value);
     if (!pattern) return;
     nodes.customStartValue.value = pattern.value;
-    setRadioValue("letterLength", pattern.letterLength);
+    if (nodes.useLetters.checked) setRadioValue("letterLength", pattern.letterLength);
     setRadioValue("digits", pattern.digits);
     nodes.form.elements.generationMode.value = "sequential";
   }
@@ -549,6 +570,9 @@
     const settings = state.settings;
     nodes.prefixMode.value = settings.prefixMode;
     nodes.manualPrefix.value = settings.manualPrefix;
+    setRadioValue("prefixSeparator", settings.prefixSeparator || "none");
+    nodes.sharedSequence.checked = Boolean(settings.sharedSequence);
+    nodes.useLetters.checked = Boolean(settings.useLetters);
     nodes.customStartEnabled.checked = Boolean(settings.customStartEnabled);
     nodes.customStartValue.value = settings.customStartValue;
     nodes.startDate.value = settings.startDate;
@@ -558,6 +582,8 @@
     renderSegmented(nodes.letterChoices, "letterLength", core.letterOptions, (value) => "A".repeat(value), settings.letterLength);
     renderPrefixFields();
     syncCustomStartControls();
+    syncSharedSequenceControls();
+    syncLetterControls();
     renderStages();
     updatePreview();
   }
@@ -573,9 +599,12 @@
       prefixMode: data.get("prefixMode"),
       prefixField: data.get("prefixField"),
       manualPrefix: data.get("manualPrefix"),
+      prefixSeparator: data.get("prefixSeparator"),
+      useLetters: data.get("useLetters") === "on",
       digits: Number(data.get("digits")),
       letterLength: Number(data.get("letterLength")),
       generationMode: data.get("generationMode"),
+      sharedSequence: data.get("sharedSequence"),
       customStartEnabled: data.get("customStartEnabled"),
       customStartValue: data.get("customStartValue"),
       startDate: data.get("startDate"),
@@ -585,18 +614,18 @@
 
   function updatePreview() {
     const settings = settingsFromForm();
-    const prefix = settings.prefixMode === "field" ? "LTE" : settings.manualPrefix || "LTE";
+    const prefix = settings.prefixMode === "none" ? "" : (settings.prefixMode === "field" ? "LTE" : settings.manualPrefix || "LTE");
     const deal = { [settings.prefixField]: prefix };
     const sequenceState = {};
     const key = core.sequenceKey(settings, 0);
     if (!settings.customStartEnabled) sequenceState[key] = 1;
     const result = core.buildNumber(settings, deal, sequenceState, 0);
-    nodes.numberPreview.textContent = result.value || `${"A".repeat(settings.letterLength)}${"0".repeat(settings.digits)}`;
+    nodes.numberPreview.textContent = result.value || `${settings.useLetters ? "A".repeat(settings.letterLength) : ""}${"0".repeat(settings.digits)}`;
   }
 
-  async function uniqueNumberExists(value, exceptDealId) {
+  async function uniqueNumberExists(value, exceptDealId, categoryId) {
     const rows = await callList("crm.deal.list", {
-      filter: { [`=${uniqueFieldName}`]: value },
+      filter: core.uniqueNumberFilter(state.settings, value, categoryId, uniqueFieldName),
       select: ["ID", uniqueFieldName],
     }).catch(() => []);
     return rows.some((deal) => Number(deal.ID) !== Number(exceptDealId));
@@ -677,7 +706,7 @@
       if (state.settings.generationMode === "sequential") {
         sequenceState[result.key] = result.nextSequence;
       }
-      const exists = await uniqueNumberExists(result.value, dealId);
+      const exists = await uniqueNumberExists(result.value, dealId, core.dealCategoryId(deal));
       if (!exists) {
         foundUnique = true;
         break;
@@ -970,6 +999,15 @@
   });
   nodes.customStartEnabled.addEventListener("change", () => {
     syncCustomStartControls();
+    syncNumberOptionsFromCustomStart();
+    updatePreview();
+  });
+  nodes.sharedSequence.addEventListener("change", () => {
+    syncSharedSequenceControls();
+    updatePreview();
+  });
+  nodes.useLetters.addEventListener("change", () => {
+    syncLetterControls();
     syncNumberOptionsFromCustomStart();
     updatePreview();
   });

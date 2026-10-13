@@ -33,6 +33,97 @@ test("uses string field as prefix source", () => {
   assert.equal(result.value, "ACME_AAAA0001");
 });
 
+test("can build numbers without a deal prefix", () => {
+  const settings = core.normalizeSettings({
+    prefixMode: "none",
+    digits: 4,
+    letterLength: 3,
+  });
+  const result = core.buildNumber(settings, {}, {}, 0);
+  assert.equal(result.value, "AAA0001");
+  assert.equal(result.prefix, "");
+  assert.equal(core.prefixFieldProblem(settings, {}), null);
+});
+
+test("can build numbers without the letter part", () => {
+  const settings = core.normalizeSettings({
+    prefixMode: "manual",
+    manualPrefix: "CRM",
+    useLetters: false,
+    digits: 4,
+  });
+  assert.equal(settings.letterLength, 0);
+  const first = core.buildNumber(settings, {}, {}, 0);
+  assert.equal(first.value, "CRM_0001");
+  const second = core.buildNumber(settings, {}, { [first.key]: first.nextSequence }, 0);
+  assert.equal(second.value, "CRM_0002");
+});
+
+test("numeric custom start works when letter part is disabled", () => {
+  const settings = core.normalizeSettings({
+    prefixMode: "manual",
+    manualPrefix: "CRM",
+    useLetters: false,
+    customStartEnabled: true,
+    customStartValue: "42",
+  });
+  assert.equal(settings.customStartValue, "0042");
+  assert.equal(settings.digits, 4);
+  assert.equal(core.customStartSequence(settings), 42);
+  assert.equal(core.buildNumber(settings, {}, {}, 0).value, "CRM_0042");
+});
+
+test("supports configurable prefix separators", () => {
+  const dash = core.normalizeSettings({
+    prefixMode: "manual",
+    manualPrefix: "CRM",
+    prefixSeparator: "-",
+  });
+  assert.equal(core.buildNumber(dash, {}, {}, 0).value, "CRM-AA0001");
+
+  const none = core.normalizeSettings({
+    prefixMode: "manual",
+    manualPrefix: "CRM",
+    prefixSeparator: "none",
+  });
+  assert.equal(none.prefixSeparator, "");
+  assert.equal(core.buildNumber(none, {}, {}, 0).value, "CRMAA0001");
+});
+
+test("can share one sequence across all configured funnels", () => {
+  const settings = core.normalizeSettings({
+    prefixMode: "manual",
+    manualPrefix: "CRM",
+    sharedSequence: true,
+  });
+  const first = core.buildNumber(settings, {}, {}, 0);
+  const second = core.buildNumber(settings, {}, { [first.key]: first.nextSequence }, 12);
+  assert.equal(first.key, second.key);
+  assert.equal(first.value, "CRM_AA0001");
+  assert.equal(second.value, "CRM_AA0002");
+});
+
+test("keeps separate sequences per funnel by default", () => {
+  const settings = core.normalizeSettings({
+    prefixMode: "manual",
+    manualPrefix: "CRM",
+  });
+  assert.notEqual(core.sequenceKey(settings, 0), core.sequenceKey(settings, 12));
+});
+
+test("scopes duplicate checks to funnel only when sequences are separate", () => {
+  const separate = core.normalizeSettings({ sharedSequence: false });
+  assert.deepEqual(core.uniqueNumberFilter(separate, "CRM_AA0001", 12), {
+    "=UF_CRM_UNIQUE_NUMBER": "CRM_AA0001",
+    "=CATEGORY_ID": 12,
+  });
+
+  const shared = core.normalizeSettings({ sharedSequence: true });
+  assert.deepEqual(core.uniqueNumberFilter(shared, "CRM_AA0001", 12), {
+    "=UF_CRM_UNIQUE_NUMBER": "CRM_AA0001",
+  });
+});
+
 test("reads Bitrix custom fields by original and camel aliases", () => {
   assert.equal(core.fieldValue({ ufCrm1789543990987: "FSA" }, "UF_CRM_1789543990987"), "FSA");
   assert.equal(core.fieldValue({ UF_CRM_UNIQUE_NUMBER: "NUM_AA001" }, "ufCrmUniqueNumber"), "NUM_AA001");
@@ -221,6 +312,13 @@ test("explains capacities", () => {
   assert.equal(info.digitCount, 999);
   assert.match(info.text, /26\^4/);
   assert.match(info.text, /001/);
+});
+
+test("explains capacities when letter part is disabled", () => {
+  const info = core.helpText(4, 0);
+  assert.equal(info.letterCount, 1);
+  assert.equal(info.total, 9999);
+  assert.match(info.text, /Буквенная часть выключена/);
 });
 
 test("checks configured target stage and existing number", () => {

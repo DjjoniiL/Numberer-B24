@@ -1,12 +1,23 @@
 # Нумератор сделок - свои правила генерации
 
+## Release v.7.6
+
+- Runtime label: `Нумератор сделок - свои правила генерации v.7.6`.
+- Marketplace zip: `dist app B24 zip/Numberer B24 v.7.6.zip`.
+- Prefix source can be manual, deal string field, or disabled completely.
+- Prefix separator can be `_`, `-`, or empty.
+- Letter part can be enabled or disabled; when disabled, numbers use only the numeric part after the prefix/separator.
+- Sequence scope can be shared across all funnels or separate per funnel.
+- Separate funnel mode scopes duplicate checks to the current `CATEGORY_ID`, so each funnel can have its own `...0001`.
+- Background worker now polls every `1500ms` for faster numbering after stage changes.
+
 `Нумератор сделок - свои правила генерации` — статическое Bitrix24 Marketplace-приложение для автоматической выдачи уникальных номеров сделкам.
 
-Финальная версия: `Нумератор сделок - свои правила генерации v.5`.
+Финальная версия: `Нумератор сделок - свои правила генерации v.7.6`.
 
-Финальный Marketplace-архив: `dist app B24 zip/Numberer B24 v.5.zip`.
+Финальный Marketplace-архив: `dist app B24 zip/Numberer B24 v.7.6.zip`.
 
-Статус: версия `v.5` исключает номера с нулевой цифровой частью во всех режимах работы.
+Статус: версия `v.7.6` включает отключаемый префикс, выбор разделителя, отключаемую буквенную часть, общий или отдельный счетчик по воронкам и ускоренный worker.
 
 ## Назначение
 
@@ -216,7 +227,7 @@ npm run lint
 powershell -ExecutionPolicy Bypass -File .\tools\build-marketplace-zip.ps1
 ```
 
-Скрипт сборки создаёт или обновляет финальный архив `dist app B24 zip/Numberer B24 v.5.zip`.
+Скрипт сборки создаёт или обновляет финальный архив `dist app B24 zip/Numberer B24 v.7.6.zip`.
 
 ## GitHub About
 
