@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const appVersion = "Нумератор сделок worker v.7.6";
+  const appVersion = "Нумератор сделок worker v.8";
   const settingsOption = "numbererB24Settings";
   const sequenceOption = "numbererB24SequenceState";
   const renumberJobOption = "numbererB24RenumberJob";

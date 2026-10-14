@@ -2,71 +2,42 @@
 
 ## Project
 
-- Path: `G:\AI Project B24\Numberer B24`
+- Path: `C:\AI Project B24\Numberer B24`
 - App: `Нумератор сделок - свои правила генерации`
-- Runtime version label: `Нумератор сделок - свои правила генерации v.7.6`
-- Current versioned zip: `dist app B24 zip/Numberer B24 v.7.6.zip`
+- Current release: `v.8`
+- Runtime version label: `Нумератор сделок - свои правила генерации v.8`
+- Worker version label: `Нумератор сделок worker v.8`
+- Current release zip: `dist app B24 zip/Numberer B24 v.8 Release.zip`
 
 ## Current State
 
-The app is a static Bitrix24 Marketplace app. It creates and fills `UF_CRM_UNIQUE_NUMBER` in deals according to admin settings.
+Version `v.8` is the user-tested release. It includes:
 
-Version `v.7.6` includes configurable/disabled prefix, configurable separator, optional letter part, shared or per-funnel sequences, per-funnel duplicate checks, and faster worker polling.
+- Configurable prefix source: manual, deal string field, or no prefix.
+- Configurable separator: `_`, `-`, or no separator.
+- Optional letter part and configurable letter length.
+- Configurable numeric length.
+- Sequential and random generation modes.
+- Custom start number.
+- Shared counter or separate per-funnel counters.
+- UI semantics: counter switch ON means separate numbers per funnel; OFF means shared counter.
+- Duplicate checks scoped to the current funnel when separate numbering is enabled.
+- Protection against all-zero numeric parts.
+- Responsive UI layout fixes for zoomed Bitrix24 pages.
+- Faster worker polling at `1500ms`.
 
-Implemented:
+## Important Notes
 
-- Admin-only settings.
-- Non-admin notice.
-- Persistent settings in `app.option`.
-- Default settings on first install.
-- Date cutoff by `DATE_CREATE`.
-- Numbering of matching deals with empty `UF_CRM_UNIQUE_NUMBER` after admin save.
-- Preservation of existing numbers in old deals.
-- Skipping deleted or unavailable deals through an additional `crm.item.get` check.
-- Prefix from manual value or from selected deal field.
-- Prefix can be disabled.
-- Separator can be `_`, `-`, or empty.
-- Letter part can be enabled or disabled.
-- Sequence state can be shared across all funnels or separate per funnel.
-- Separate funnel mode scopes duplicate checks to the current `CATEGORY_ID`.
-- Timeline comment when selected prefix field is empty.
-- Custom start number mode.
-- Automatic digit/letter option sync from custom start value.
-- Worker processing of matching unnumbered deals with `1500ms` polling.
-- Toggleable logging journal with app scrolling when opened.
-- Versioned zip build script.
-
-## Important Rules
-
-- Use scopes: `crm`, `placement`, `user_brief`.
-- Do not use `user_basic` unless new code starts reading contacts or richer user profiles.
-- Do not overwrite old Marketplace archives. Create a new versioned zip after runtime changes.
-- Runtime zip must contain only browser runtime files.
-- Do not commit generated Marketplace zip archives by default.
-- Only one, maximum two, final/release zip archives may be committed/pushed, and only after the user explicitly approves pushing the zip.
-- User explicitly requested pushing version `v.7.6`.
-- Do not push unless the user explicitly asks.
+- Do not overwrite old Marketplace archives.
+- Build the release archive with `tools/build-marketplace-zip.ps1`.
+- Zip files are ignored by `.gitignore`; add the release zip with `git add -f`.
+- Keep the release label as `v.8` unless the user asks for a new version.
 
 ## Checks
+
+Run before push:
 
 ```powershell
 npm test
 npm run lint
-powershell -ExecutionPolicy Bypass -File .\tools\build-marketplace-zip.ps1
 ```
-
-Before handing off a new build, inspect zip contents and remind the user to smoke-check the installed zip on the Bitrix24 test portal.
-
-## Manual Test Status
-
-User tested version `v.3.18` successfully:
-
-- manual prefix works;
-- prefix from deal field works;
-- custom start number works;
-- old filled values in `Уникальный номер` are preserved;
-- admin/non-admin access works;
-- logging journal works;
-- settings persist after refresh.
-
-Version `v.7.6` should be treated as the current release label.

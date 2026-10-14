@@ -1,10 +1,10 @@
 {
   "name": "numberer-b24",
-  "version": "7.6.0",
+  "version": "8.0.0",
   "description": "Bitrix24 Marketplace app for assigning unique deal numbers.",
   "type": "commonjs",
   "scripts": {
-    "test": "node --test .\\tests\\*.js",
+    "test": "node --test tests",
     "lint": "node --check app.js && node --check install.js && node --check worker.js && node --check numbering-core.js"
   },
   "engines": {

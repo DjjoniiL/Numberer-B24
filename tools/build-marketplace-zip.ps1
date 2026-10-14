@@ -6,10 +6,10 @@ $ErrorActionPreference = "Stop"
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $DistDir = Join-Path $ProjectRoot "dist app B24 zip"
 $ProductName = "Numberer B24"
-$AppVersion = "7.6"
+$AppVersion = "8"
 
 if (-not $OutputPath) {
-  $OutputPath = Join-Path $DistDir "$ProductName v.$AppVersion.zip"
+  $OutputPath = Join-Path $DistDir "$ProductName v.$AppVersion Release.zip"
 }
 
 New-Item -ItemType Directory -Force -Path $DistDir | Out-Null

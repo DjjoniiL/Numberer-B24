@@ -35,20 +35,19 @@ select {
 
 .app-shell,
 .install-shell {
-  width: min(1120px, calc(100vw - 24px));
+  width: min(1280px, calc(100vw - 24px));
   margin: 0 auto;
   padding: 10px 0;
 }
 
 .app-shell {
-  width: min(calc(1120px + 2cm), calc(100vw - 24px));
-  margin-left: max(12px, calc((100vw - 1120px) / 2 - 2cm));
-  margin-right: auto;
+  width: min(1280px, calc(100vw - 24px));
+  margin-inline: auto;
 }
 
 body.compact-stages-page,
 body:has(.compact-stages) {
-  overflow-y: hidden;
+  overflow-y: auto;
 }
 
 body.log-visible-page {
@@ -170,6 +169,7 @@ h3 {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 10px;
+  flex-wrap: wrap;
 }
 
 .field {
@@ -212,7 +212,8 @@ legend {
 }
 
 .segmented label {
-  min-width: 86px;
+  flex: 0 1 118px;
+  min-width: min(100%, 86px);
 }
 
 .segmented input {
@@ -230,6 +231,8 @@ legend {
   padding: 8px 10px;
   background: #fff;
   cursor: pointer;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 .segmented input:checked + span {
@@ -246,51 +249,99 @@ legend {
 
 .settings-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.66fr) minmax(330px, 0.34fr);
-  gap: 14px;
+  grid-template-columns: minmax(620px, 1fr) minmax(320px, 360px);
+  gap: 24px;
   align-items: start;
 }
 
 .number-options {
   display: grid;
-  grid-template-columns: minmax(0, 0.52fr) minmax(250px, 0.48fr);
-  gap: 10px 16px;
+  grid-template-columns: minmax(260px, 0.42fr) minmax(430px, 1fr);
+  gap: 12px 16px;
   align-items: start;
+}
+
+.number-options .segmented label {
+  flex-basis: 118px;
+}
+
+.prefix-mode-row {
+  display: grid;
+  grid-template-columns: max-content minmax(420px, 520px);
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 10px;
+}
+
+.prefix-mode-row .choice-group {
+  margin-bottom: 0;
+}
+
+.prefix-mode-row #prefixSeparatorWrap {
+  width: max-content;
+}
+
+.prefix-mode-row #prefixSeparatorChoices {
+  flex-wrap: nowrap;
+}
+
+.prefix-mode-row #prefixSeparatorChoices label {
+  flex: 0 0 82px;
+  min-width: 82px;
+}
+
+.prefix-mode-row #prefixSeparatorChoices label:last-child {
+  flex-basis: 96px;
+  min-width: 96px;
+}
+
+.prefix-mode-row .mode-group {
+  justify-self: end;
+  width: min(100%, 520px);
+}
+
+.prefix-mode-row .mode-group .segmented {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+.prefix-mode-row .mode-group .segmented label:first-child {
+  flex: 0 0 280px;
+}
+
+.prefix-mode-row .mode-group .segmented label:last-child {
+  flex: 0 0 160px;
 }
 
 .number-options .choice-group:first-child .segmented {
   flex-wrap: nowrap;
 }
 
-.number-options .choice-group:has(#letterChoices) {
-  display: grid;
+.number-options .choice-group:first-child {
   grid-column: 1 / -1;
-  grid-row: 3;
-  grid-template-columns: minmax(0, 0.52fr) minmax(250px, 0.48fr);
-  gap: 8px 16px;
 }
 
-.number-options .choice-group:has(#letterChoices) legend {
-  grid-column: 1 / -1;
+.number-options .choice-group:first-child .segmented label {
+  flex: 1 1 0;
+}
+
+.number-options .choice-group:has(#letterChoices) {
+  grid-column: 2;
+  grid-row: 2;
 }
 
 .number-options .choice-group:has(#useLetters) {
   grid-column: 1;
-  grid-row: 3;
-  align-self: end;
-  margin-top: 30px;
+  grid-row: 2;
+  margin-top: 0;
 }
 
 .number-options .choice-group:has(#useLetters) legend {
   display: none;
 }
 
-.number-options .mode-group:not(:last-child) {
-  grid-column: 2;
-  grid-row: 1;
-}
-
-.number-options .mode-group:last-child {
+.number-options .mode-group {
   display: none;
 }
 
@@ -299,13 +350,17 @@ legend {
 }
 
 .generation-settings {
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   padding: 0;
 }
 
 .generation-settings h3 {
   margin-top: 0;
   margin-bottom: 6px;
+}
+
+.stage-panel .generation-settings h3 {
+  display: none;
 }
 
 .switch-row {
@@ -315,6 +370,7 @@ legend {
   gap: 10px;
   min-height: 32px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
 }
 
 .switch-row > span:first-child {
@@ -324,7 +380,7 @@ legend {
 
 .number-options .choice-group:has(#useLetters) .switch-row {
   justify-content: flex-start;
-  width: max-content;
+  width: 100%;
   max-width: 100%;
 }
 
@@ -375,11 +431,14 @@ legend {
 }
 
 .mode-group .segmented {
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+}
+
+.mode-group .segmented label {
+  flex-basis: 140px;
 }
 
 #letterChoices {
-  grid-column: 2;
   flex-wrap: nowrap;
 }
 
@@ -388,7 +447,8 @@ legend {
 }
 
 #letterChoices label {
-  min-width: 74px;
+  flex: 1 1 0;
+  min-width: min(100%, 74px);
 }
 
 #letterChoices span {
@@ -421,7 +481,7 @@ legend {
 
 .stage-row {
   display: grid;
-  grid-template-columns: minmax(120px, 0.42fr) minmax(220px, 1fr);
+  grid-template-columns: minmax(100px, 0.42fr) minmax(180px, 1fr);
   gap: 10px;
   align-items: center;
 }
@@ -634,5 +694,31 @@ dialog::backdrop {
 
   .stage-row {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1040px) {
+  .settings-grid,
+  .number-options,
+  .prefix-mode-row {
+    grid-template-columns: 1fr;
+  }
+
+  .number-options .mode-group:not(:last-child) {
+    grid-column: 1;
+  }
+
+  .prefix-mode-row .mode-group .segmented,
+  .number-options .choice-group:first-child .segmented,
+  #letterChoices {
+    flex-wrap: wrap;
+  }
+
+  .stage-panel .field,
+  .stage-panel .preview,
+  .stage-panel .generation-settings,
+  .stage-panel .stage-matrix,
+  .stage-panel h3 {
+    width: 100%;
   }
 }

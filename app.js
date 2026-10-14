@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const appVersion = "Нумератор сделок - свои правила генерации v.7.6";
+  const appVersion = "Нумератор сделок - свои правила генерации v.8";
   const settingsOption = "numbererB24Settings";
   const sequenceOption = "numbererB24SequenceState";
   const renumberJobOption = "numbererB24RenumberJob";
@@ -498,7 +498,7 @@
 
   function syncSharedSequenceControls() {
     const enabled = nodes.sharedSequence.checked;
-    nodes.sharedSequenceStatus.textContent = enabled ? "Общий счетчик для всех воронок" : "Отдельные номера на воронку";
+    nodes.sharedSequenceStatus.textContent = enabled ? "Отдельные номера на воронку" : "Общий счетчик для всех воронок";
   }
 
   function syncLetterControls() {
@@ -571,7 +571,7 @@
     nodes.prefixMode.value = settings.prefixMode;
     nodes.manualPrefix.value = settings.manualPrefix;
     setRadioValue("prefixSeparator", settings.prefixSeparator || "none");
-    nodes.sharedSequence.checked = Boolean(settings.sharedSequence);
+    nodes.sharedSequence.checked = !settings.sharedSequence;
     nodes.useLetters.checked = Boolean(settings.useLetters);
     nodes.customStartEnabled.checked = Boolean(settings.customStartEnabled);
     nodes.customStartValue.value = settings.customStartValue;
@@ -600,12 +600,12 @@
       prefixField: data.get("prefixField"),
       manualPrefix: data.get("manualPrefix"),
       prefixSeparator: data.get("prefixSeparator"),
-      useLetters: data.get("useLetters") === "on",
+      useLetters: nodes.useLetters.checked,
       digits: Number(data.get("digits")),
       letterLength: Number(data.get("letterLength")),
       generationMode: data.get("generationMode"),
-      sharedSequence: data.get("sharedSequence"),
-      customStartEnabled: data.get("customStartEnabled"),
+      sharedSequence: !nodes.sharedSequence.checked,
+      customStartEnabled: nodes.customStartEnabled.checked,
       customStartValue: data.get("customStartValue"),
       startDate: data.get("startDate"),
       stagesByCategory,

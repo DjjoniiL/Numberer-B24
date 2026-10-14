@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const appVersion = "Нумератор сделок - свои правила генерации v.7.6";
+  const appVersion = "Нумератор сделок - свои правила генерации v.8";
   const settingsOption = "numbererB24Settings";
   const uniqueFieldName = "UF_CRM_UNIQUE_NUMBER";
   const uniqueFieldShortName = "UNIQUE_NUMBER";

@@ -48,6 +48,7 @@
             <select name="prefixField" id="prefixField"></select>
           </label>
 
+          <div class="prefix-mode-row">
           <fieldset class="choice-group" id="prefixSeparatorWrap">
             <legend>&#1056;&#1072;&#1079;&#1076;&#1077;&#1083;&#1080;&#1090;&#1077;&#1083;&#1100; &#1087;&#1086;&#1089;&#1083;&#1077; &#1087;&#1088;&#1077;&#1092;&#1080;&#1082;&#1089;&#1072;</legend>
             <div class="segmented" id="prefixSeparatorChoices">
@@ -56,6 +57,15 @@
               <label><input type="radio" name="prefixSeparator" value="none"><span>&#1041;&#1077;&#1079;</span></label>
             </div>
           </fieldset>
+
+          <fieldset class="choice-group mode-group">
+            <legend>&#1056;&#1077;&#1078;&#1080;&#1084; &#1089;&#1086;&#1079;&#1076;&#1072;&#1085;&#1080;&#1103; &#1085;&#1086;&#1084;&#1077;&#1088;&#1086;&#1074;</legend>
+            <div class="segmented">
+              <label><input type="radio" name="generationMode" value="sequential" checked><span>&#1055;&#1086;&#1089;&#1083;&#1077;&#1076;&#1086;&#1074;&#1072;&#1090;&#1077;&#1083;&#1100;&#1085;&#1099;&#1081;</span></label>
+              <label><input type="radio" name="generationMode" value="random"><span>&#1056;&#1072;&#1085;&#1076;&#1086;&#1084;&#1085;&#1099;&#1081;</span></label>
+            </div>
+          </fieldset>
+          </div>
 
           <label class="field">
             <span>Дата начала выборки</span>
@@ -141,7 +151,7 @@
         <pre id="log" class="log"></pre>
       </section>
     </form>
-    <div id="appVersion" class="app-version">Нумератор сделок - свои правила генерации v.7.6</div>
+    <div id="appVersion" class="app-version">Нумератор сделок - свои правила генерации v.8</div>
   </main>
 
   <dialog id="helpModal">

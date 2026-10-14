@@ -111,6 +111,22 @@ test("keeps separate sequences per funnel by default", () => {
   assert.notEqual(core.sequenceKey(settings, 0), core.sequenceKey(settings, 12));
 });
 
+test("keeps separate funnel sequences when custom start is enabled", () => {
+  const settings = core.normalizeSettings({
+    prefixMode: "manual",
+    manualPrefix: "CRM",
+    sharedSequence: false,
+    customStartEnabled: true,
+    customStartValue: "42",
+  });
+  const first = core.buildNumber(settings, {}, {}, 0);
+  const second = core.buildNumber(settings, {}, {}, 12);
+  assert.equal(settings.sharedSequence, false);
+  assert.notEqual(first.key, second.key);
+  assert.equal(first.value, "CRM_AA0042");
+  assert.equal(second.value, "CRM_AA0042");
+});
+
 test("scopes duplicate checks to funnel only when sequences are separate", () => {
   const separate = core.normalizeSettings({ sharedSequence: false });
   assert.deepEqual(core.uniqueNumberFilter(separate, "CRM_AA0001", 12), {
